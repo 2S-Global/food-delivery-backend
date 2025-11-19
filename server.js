@@ -14,12 +14,16 @@ app.use(express.urlencoded({ extended: true }));
 
 // Import routes
 import AuthRouter from "./routes/AuthRoutes.js";
+import userDataRouter from "./routes/userDataRoutes.js";
 
-// Routes
+// Testing Routes
 app.get("/", (req, res) => {
   res.send("Welcome to the back end of the Food Delivery App ");
 });
+
+// Register and Login Routes
 app.use("/api/auth", AuthRouter);
+app.use("/api/userdata", userDataRouter);
 
 
 const PORT = process.env.PORT || 8080;

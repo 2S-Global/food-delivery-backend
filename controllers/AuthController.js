@@ -4,12 +4,12 @@ import jwt from "jsonwebtoken";
 import User from "../models/userModel.js";
 
 export const getTest = async (req, res) => {
-    try {
+  try {
 
-        res.json({ success: true, data: "Food Delivery First API is Running Successfully" });
-    } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
-    }
+    res.json({ success: true, data: "Food Delivery First API is Running Successfully" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 };
 
 // Register a new user
@@ -76,7 +76,7 @@ export const registerUser = async (req, res) => {
       .status(500)
       .json({ message: "Error creating user", error: error.message });
   }
-} ;
+};
 
 // Customer Register
 export const registerCustomer = async (req, res) => {
@@ -226,12 +226,29 @@ export const listCustomers = async (req, res) => {
         message: "No candidates found"
       });
     }
-    
+
+    // Format date + time to: 22/05/2025, 01:58 PM
+    const formattedCandidates = candidates.map((item) => {
+      const formattedDate = item.createdAt.toLocaleString("en-GB", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      });
+
+      return {
+        ...item._doc,
+        createdAt: formattedDate,
+      };
+    });
+
     // Success response
     return res.status(200).json({
       success: true,
       message: "Candidates retrieved successfully",
-      data: candidates
+      data: formattedCandidates
     });
 
   } catch (error) {
