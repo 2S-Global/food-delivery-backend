@@ -215,8 +215,8 @@ export const registerDeliveryBoy = async (req, res) => {
 
     // Send email with login credentials
     const transporter = nodemailer.createTransport({
-      host: "smtp.zoho.in", // fixed typo
-      port: 465,
+      host: process.env.EMAIL_HOST, // fixed typo
+      port: process.env.EMAIL_PORT,
       secure: true, // true for port 465
       auth: {
         user: process.env.EMAIL_USER,
