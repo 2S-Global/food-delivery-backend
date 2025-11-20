@@ -2,7 +2,7 @@ import express from "express";
 import multer from "multer";
 import userAuth from "../middleware/authMiddleware.js";
 import adminMiddleware from "../middleware/adminMiddleware.js";
-import { getTest, registerUser, loginUser, validtoken, registerCustomer, listCustomers } from "../controllers/AuthController.js"
+import { getTest, registerUser, loginUser, validtoken, registerCustomer, listCustomers, registerDeliveryBoy, verifyEmail } from "../controllers/AuthController.js"
 
 // Initialize router
 const AuthRouter = express.Router();
@@ -19,8 +19,14 @@ AuthRouter.post("/admin-register", upload.none(), registerUser);
 // Register User
 AuthRouter.post("/customer-register", upload.none(), registerCustomer);
 
+// Register Delivery Boy
+AuthRouter.post("/delivery-boy-register", upload.none(), userAuth, adminMiddleware, registerDeliveryBoy);
+
 //validate token
 AuthRouter.get("/validtoken", userAuth, validtoken);
+
+// Validate email
+AuthRouter.get("/verify-email", verifyEmail);
 
 // Login user
 AuthRouter.post("/login", upload.none(), loginUser);
