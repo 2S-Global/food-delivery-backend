@@ -210,9 +210,6 @@ export const registerDeliveryBoy = async (req, res) => {
       expiresIn: "3d",
     });
 
-    console.log(`Before Creating mail everything is perfect: ${process.env.CLIENT_BASE_URL}`);
-
-
     // Send email with login credentials
     const transporter = nodemailer.createTransport({
       host: process.env.EMAIL_HOST, // fixed typo
