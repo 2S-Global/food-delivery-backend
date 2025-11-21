@@ -149,6 +149,75 @@ export const registerCustomer = async (req, res) => {
   }
 };
 
+// Update Delivery Boy Account
+export const updateDeliveryBoyAccount = async (req, res) => {
+  try {
+    const { userId } = req.query;
+    const { name, email, phone_number } = req.body;
+
+    // Validate required fields
+    if (!name || !email || !phone_number) {
+      return res
+        .status(400)
+        .json({ message: "name, email, and phone_number are required" });
+    }
+
+    // Check if the email is taken by another user
+    const existingUser = await User.findOne({
+      email,
+      _id: { $ne: userId },
+      is_del: false,
+    });
+
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: "Email already in use by another account",
+      });
+    }
+
+    // Validate phone number
+    const phoneNumber = parsePhoneNumberFromString(phone_number, "IN");
+
+    if (!phoneNumber || !phoneNumber.isValid()) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid phone number",
+      });
+    }
+
+    const formattedPhone = phoneNumber.number; // E.164 Format
+
+    // Update user
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      {
+        name,
+        email,
+        phone_number: formattedPhone,
+      },
+      { new: true }
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    res.status(201).json({
+      success: true,
+      message: "User updated successfully!",
+      data: updatedUser,
+    });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Error creating user", error: error.message });
+  }
+};
+
 // Register Delivery Boy
 export const registerDeliveryBoy = async (req, res) => {
   try {

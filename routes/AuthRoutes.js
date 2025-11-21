@@ -2,7 +2,7 @@ import express from "express";
 import multer from "multer";
 import userAuth from "../middleware/authMiddleware.js";
 import adminMiddleware from "../middleware/adminMiddleware.js";
-import { getTest, registerUser, loginUser, validtoken, registerCustomer, listCustomers, registerDeliveryBoy, verifyEmail } from "../controllers/AuthController.js"
+import { getTest, registerUser, loginUser, validtoken, registerCustomer, listCustomers, registerDeliveryBoy, verifyEmail, updateDeliveryBoyAccount } from "../controllers/AuthController.js";
 
 // Initialize router
 const AuthRouter = express.Router();
@@ -21,6 +21,9 @@ AuthRouter.post("/customer-register", upload.none(), registerCustomer);
 
 // Register Delivery Boy
 AuthRouter.post("/delivery-boy-register", upload.none(), userAuth, adminMiddleware, registerDeliveryBoy);
+
+// Delivery Boy Account Update
+AuthRouter.put("/update-delivery-boy-account", upload.none(), userAuth, adminMiddleware, updateDeliveryBoyAccount);
 
 //validate token
 AuthRouter.get("/validtoken", userAuth, validtoken);
