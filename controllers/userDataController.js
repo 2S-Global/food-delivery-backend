@@ -1,4 +1,6 @@
 import User from "../models/userModel.js";
+import Menu from "../models/menuModel.js";
+import { v2 as cloudinary } from 'cloudinary';
 import mongoose from "mongoose";
 // Toggle Status
 export const toggleStatus = async (req, res) => {
@@ -26,7 +28,7 @@ export const toggleStatus = async (req, res) => {
     res.status(200).json({
       success: true,
       data: updated,
-       message: `User Status Changed Successfully.`,
+      message: `User Status Changed Successfully.`,
     });
   } catch (error) {
     res.status(500).json({
@@ -118,6 +120,120 @@ export const listDeliveryBoys = async (req, res) => {
       success: true,
       message: "Candidates retrieved successfully",
       data: formattedCandidates
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Error fetching candidates",
+      error: error.message
+    });
+  }
+};
+
+// Add menu API
+export const addMenu = async (req, res) => {
+  try {
+
+    const { menuName, menuType, description, dayType, mealType } =
+      req.body;
+
+    if (!menuName || !menuType || !description || !dayType || !mealType) {
+      return res.status(400).json({ message: "All fields are required." });
+    }
+    
+
+    console.log("Files received:", req.files);
+
+    // Multer stores files in req.files
+    // Check if at least one image exists
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ message: "At least one image is required." });
+    }
+
+    // Array to store uploaded image URLs
+    const uploadedImages = [];
+   // Upload each file to Cloudinary
+    for (const file of req.files) {
+      const result = await new Promise((resolve, reject) => {
+        cloudinary.uploader
+          .upload_stream({ folder: "menus" }, (err, uploadResult) => {
+            if (err) reject(err);
+            else resolve(uploadResult);
+          })
+          .end(file.buffer);
+      });
+
+      uploadedImages.push(result.secure_url);
+    }
+
+    const menu = new Menu({
+      menuName,
+      menuType,
+      description,
+      dayType,
+      mealType,
+      images: uploadedImages,
+    });
+
+    await menu.save();
+
+    // Success response
+    return res.status(200).json({
+      success: true,
+      message: "Menu created successfully",
+      data: menu,
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Error creating menu",
+      error: error.message
+    });
+  }
+};
+
+// List All Menu
+export const listAllMenu = async (req, res) => {
+  try {
+    // Fetch all users with role 1 and not deleted
+    const allMenus = await Menu.find({
+      isDel: false
+    }).select("menuName menuType description images dayType mealType createdAt");
+
+    // If no data found
+    if (!allMenus.length) {
+      return res.status(404).json({
+        success: false,
+        message: "No Menu found"
+      });
+    }
+
+    console.log("Here is my All Menu: ", allMenus);
+
+    // // Format date + time to: 22/05/2025, 01:58 PM
+    // const formattedCandidates = candidates.map((item) => {
+    //   const formattedDate = item.createdAt.toLocaleString("en-GB", {
+    //     day: "2-digit",
+    //     month: "2-digit",
+    //     year: "numeric",
+    //     hour: "2-digit",
+    //     minute: "2-digit",
+    //     hour12: true,
+    //   });
+
+    //   return {
+    //     ...item._doc,
+    //     createdAt: formattedDate,
+    //   };
+    // });
+
+    // Success response
+    return res.status(200).json({
+      success: true,
+      message: "All Menu retrieved successfully",
+      data: allMenus
     });
 
   } catch (error) {

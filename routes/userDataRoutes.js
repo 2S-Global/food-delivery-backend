@@ -1,8 +1,20 @@
 import express from "express";
 import multer from "multer";
+import dotenv from 'dotenv';
+import { v2 as cloudinary } from 'cloudinary';
 import userAuth from "../middleware/authMiddleware.js";
 import adminMiddleware from "../middleware/adminMiddleware.js";
-import { toggleStatus, deleteCustomer, listDeliveryBoys } from "../controllers/userDataController.js"
+import { toggleStatus, deleteCustomer, listDeliveryBoys, addMenu, listAllMenu } from "../controllers/userDataController.js"
+
+// Initialize dotenv to load environment variables
+dotenv.config();
+
+// Configure Cloudinary
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 // Initialize router
 const userDataRouter = express.Router();
@@ -16,5 +28,9 @@ userDataRouter.post("/toggle-status", upload.none(), userAuth, adminMiddleware, 
 userDataRouter.post("/delete-customer", upload.none(), userAuth, adminMiddleware, deleteCustomer);
 // List all delivery boys
 userDataRouter.get("/list-delivery-boys", userAuth, adminMiddleware, listDeliveryBoys);
+// Add menu
+userDataRouter.post("/add-menu", upload.array("images", 10), userAuth, adminMiddleware, addMenu);
+// List All Menu
+userDataRouter.get("/list-all-menu", userAuth, adminMiddleware, listAllMenu);
 
 export default userDataRouter;
