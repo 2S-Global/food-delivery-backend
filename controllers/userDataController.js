@@ -132,7 +132,7 @@ export const listDeliveryBoys = async (req, res) => {
 };
 
 // Add menu API
-export const addMenu = async (req, res) => {
+export const addMenu123 = async (req, res) => {
   try {
 
     const { menuName, menuType, description, dayType, mealType } =
@@ -141,7 +141,7 @@ export const addMenu = async (req, res) => {
     if (!menuName || !menuType || !description || !dayType || !mealType) {
       return res.status(400).json({ message: "All fields are required." });
     }
-    
+
 
     console.log("Files received:", req.files);
 
@@ -153,7 +153,7 @@ export const addMenu = async (req, res) => {
 
     // Array to store uploaded image URLs
     const uploadedImages = [];
-   // Upload each file to Cloudinary
+    // Upload each file to Cloudinary
     for (const file of req.files) {
       const result = await new Promise((resolve, reject) => {
         cloudinary.uploader
@@ -194,6 +194,151 @@ export const addMenu = async (req, res) => {
   }
 };
 
+// Add menu API
+export const addMenu = async (req, res) => {
+  try {
+    const {
+      menuName,
+      menuType,
+      description,
+      dayType,
+      mealType,
+    } = req.body;
+
+    if (!menuName || !menuType) {
+      return res.status(400).json({
+        success: false,
+        message: "Name and Menu Type are required",
+      });
+    }
+
+    // Multer stores files in req.files
+    // Check if at least one image exists
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ message: "At least one image is required." });
+    }
+
+    // Array to store uploaded image URLs
+    const uploadedImages = [];
+    // Upload each file to Cloudinary
+    for (const file of req.files) {
+      const result = await new Promise((resolve, reject) => {
+        cloudinary.uploader
+          .upload_stream({ folder: "menus" }, (err, uploadResult) => {
+            if (err) reject(err);
+            else resolve(uploadResult);
+          })
+          .end(file.buffer);
+      });
+
+      uploadedImages.push(result.secure_url);
+    }
+
+    // menuName,
+    // menuType,
+    // description,
+    // dayType,
+    // mealType,
+    // images: uploadedImages,
+
+    const newMenu = new Menu({
+      menuName,
+      menuType,
+      description,
+      dayType,
+      mealType,
+      images: uploadedImages,
+    });
+
+    await newMenu.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Menu added successfully",
+      data: newMenu,
+    });
+
+  } catch (error) {
+    console.log("Add Menu Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+};
+
+// Edit menu API
+export const editMenu = async (req, res) => {
+  try {
+
+    const { _id } = req.params;
+
+    const {
+      menuName,
+      menuType,
+      description,
+      dayType,
+      mealType,
+      oldImages = []   // whatever images user kept
+    } = req.body;
+
+    if (!menuName || !menuType) {
+      return res.status(400).json({
+        success: false,
+        message: "Name and Menu Type are required",
+      });
+    }
+
+    // New uploaded images (from Multer)
+    const uploadedNewImages = [];
+
+    if (req.files && req.files.length > 0) {
+      for (const file of req.files) {
+        const result = await new Promise((resolve, reject) => {
+          cloudinary.uploader
+            .upload_stream({ folder: "menus" }, (err, uploadResult) => {
+              if (err) reject(err);
+              else resolve(uploadResult);
+            })
+            .end(file.buffer);
+        });
+
+        uploadedNewImages.push(result.secure_url);
+      }
+    }
+
+    // Final image list = oldImages (kept) + newImages (uploaded)
+    const finalImages = [...oldImages, ...uploadedNewImages];
+
+    // Update DB
+    const updatedMenu = await Menu.findByIdAndUpdate(
+      _id,
+      {
+        menuName,
+        menuType,
+        description,
+        dayType,
+        mealType,
+        images: finalImages,
+      },
+      { new: true }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Menu updated successfully",
+      data: updatedMenu,
+    });
+
+  } catch (error) {
+    console.log("Edit Menu Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+};
+
 // List All Menu
 export const listAllMenu = async (req, res) => {
   try {
@@ -210,7 +355,7 @@ export const listAllMenu = async (req, res) => {
       });
     }
 
-    console.log("Here is my All Menu: ", allMenus);
+    // console.log("Here is my All Menu: ", allMenus);
 
     // // Format date + time to: 22/05/2025, 01:58 PM
     // const formattedCandidates = candidates.map((item) => {
@@ -241,6 +386,50 @@ export const listAllMenu = async (req, res) => {
       success: false,
       message: "Error fetching candidates",
       error: error.message
+    });
+  }
+};
+
+// Delete Menu
+export const deleteMenu = async (req, res) => {
+  try {
+    const { _id } = req.query;
+
+    console.log("Delete Menu ID:", _id);
+
+    // Validate and convert companyId to ObjectId
+    if (!mongoose.Types.ObjectId.isValid(_id)) {
+      return res
+        .status(400)
+        .json({ success: false, message: `Invalid Menu ID` });
+    }
+
+    const objectId = new mongoose.Types.ObjectId(_id);
+
+    // Find and update the company
+    const deletedMenu = await Menu.findOneAndUpdate(
+      { _id: objectId, isDel: false },
+      { isDel: true, updatedAt: new Date() },
+      { new: true }
+    );
+
+    if (!deletedMenu) {
+      return res.status(404).json({
+        success: false,
+        message: `menu not found or already deleted`,
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Menu deleted successfully`,
+      data: deletedMenu,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error deleting menu",
+      error: error.message,
     });
   }
 };
