@@ -28,12 +28,12 @@ const menuSchema = new mongoose.Schema(
       type: String,
       required: true,
       enum: [
-        "monday",
-        "tuesday",
-        "wednesday",
-        "thursday",
-        "friday",
-        "saturday",
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
       ],
     },
 

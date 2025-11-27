@@ -2,6 +2,14 @@ import User from "../models/userModel.js";
 import Menu from "../models/menuModel.js";
 import { v2 as cloudinary } from 'cloudinary';
 import mongoose from "mongoose";
+
+const isQuillEmpty = (value) => {
+  if (!value) return true;
+
+  const cleaned = value.replace(/<(.|\n)*?>/g, "").trim();
+  return cleaned.length === 0;
+};
+
 // Toggle Status
 export const toggleStatus = async (req, res) => {
   try {
@@ -212,6 +220,27 @@ export const addMenu = async (req, res) => {
       });
     }
 
+    if (isQuillEmpty(description)) {
+      return res.status(400).json({
+        success: false,
+        message: "Description is required",
+      });
+    }
+
+    if (!dayType) {
+      return res.status(400).json({
+        success: false,
+        message: "Day is required",
+      });
+    }
+
+    if (!mealType) {
+      return res.status(400).json({
+        success: false,
+        message: "Meal Type is required",
+      });
+    }
+
     // Multer stores files in req.files
     // Check if at least one image exists
     if (!req.files || req.files.length === 0) {
@@ -244,7 +273,7 @@ export const addMenu = async (req, res) => {
     const newMenu = new Menu({
       menuName,
       menuType,
-      description,
+      description: isQuillEmpty(description) ? "" : description,
       dayType,
       mealType,
       images: uploadedImages,
