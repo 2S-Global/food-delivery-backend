@@ -1,5 +1,6 @@
 import User from "../models/userModel.js";
 import Menu from "../models/menuModel.js";
+import AdditionalItem from "../models/additionalItemModel.js";
 import { v2 as cloudinary } from 'cloudinary';
 import mongoose from "mongoose";
 
@@ -459,6 +460,107 @@ export const deleteMenu = async (req, res) => {
       success: false,
       message: "Error deleting menu",
       error: error.message,
+    });
+  }
+};
+
+// Add Additional Item API
+export const addAdditionalItem = async (req, res) => {
+  try {
+    const {
+      itemName,
+      itemPrice,
+      description,
+    } = req.body;
+
+    if (!itemName || !itemPrice) {
+      return res.status(400).json({
+        success: false,
+        message: "Item Name and Item Price are required",
+      });
+    }
+
+    if (isQuillEmpty(description)) {
+      return res.status(400).json({
+        success: false,
+        message: "Description is required",
+      });
+    }
+
+    // Multer stores files in req.files
+    // Check if at least one image exists
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ message: "At least one image is required." });
+    }
+
+    // Array to store uploaded image URLs
+    const uploadedImages = [];
+    // Upload each file to Cloudinary
+    for (const file of req.files) {
+      const result = await new Promise((resolve, reject) => {
+        cloudinary.uploader
+          .upload_stream({ folder: "additionalitems" }, (err, uploadResult) => {
+            if (err) reject(err);
+            else resolve(uploadResult);
+          })
+          .end(file.buffer);
+      });
+
+      uploadedImages.push(result.secure_url);
+    }
+
+    const newItem = new AdditionalItem({
+      itemName,
+      itemPrice,
+      description: isQuillEmpty(description) ? "" : description,
+      images: uploadedImages,
+    });
+
+    await newItem.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Additional Item added successfully",
+      data: newItem,
+    });
+
+  } catch (error) {
+    console.log("Add Menu Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+};
+
+// List All Additional Items
+export const listAdditionalItems = async (req, res) => {
+  try {
+    // Fetch all users with role 1 and not deleted
+    const allItems = await AdditionalItem.find({
+      isDel: false
+    }).select("itemName itemPrice description images createdAt");
+
+    // If no data found
+    if (!allItems.length) {
+      return res.status(404).json({
+        success: false,
+        message: "No Additional Item found"
+      });
+    }
+
+    // Success response
+    return res.status(200).json({
+      success: true,
+      message: "All Additional Items retrieved successfully",
+      data: allItems
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Error fetching additional items",
+      error: error.message
     });
   }
 };
