@@ -564,3 +564,115 @@ export const listAdditionalItems = async (req, res) => {
     });
   }
 };
+
+// Edit Additional Item API
+export const editAdditionalItem = async (req, res) => {
+  try {
+
+    const { _id } = req.params;
+
+    const {
+      itemName,
+      itemPrice,
+      description,
+      oldImages = []   // whatever images user kept
+    } = req.body;
+
+    if (!itemName || !itemPrice) {
+      return res.status(400).json({
+        success: false,
+        message: "Item Name and Item Price are required",
+      });
+    }
+
+    // New uploaded images (from Multer)
+    const uploadedNewImages = [];
+
+    if (req.files && req.files.length > 0) {
+      for (const file of req.files) {
+        const result = await new Promise((resolve, reject) => {
+          cloudinary.uploader
+            .upload_stream({ folder: "additionalitems" }, (err, uploadResult) => {
+              if (err) reject(err);
+              else resolve(uploadResult);
+            })
+            .end(file.buffer);
+        });
+
+        uploadedNewImages.push(result.secure_url);
+      }
+    }
+
+    // Final image list = oldImages (kept) + newImages (uploaded)
+    const finalImages = [...oldImages, ...uploadedNewImages];
+
+    // Update DB
+    const updatedItem = await AdditionalItem.findByIdAndUpdate(
+      _id,
+      {
+        itemName,
+        itemPrice,
+        description,
+        images: finalImages,
+      },
+      { new: true }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Additional Item updated successfully",
+      data: updatedItem,
+    });
+
+  } catch (error) {
+    console.log("Edit Additional Item Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+};
+
+// Delete Additional Item API
+export const deleteAdditionalItem = async (req, res) => {
+  try {
+    const { _id } = req.query;
+
+    console.log("Delete Additional Item ID:", _id);
+
+    // Validate and convert companyId to ObjectId
+    if (!mongoose.Types.ObjectId.isValid(_id)) {
+      return res
+        .status(400)
+        .json({ success: false, message: `Invalid Additional Item ID` });
+    }
+
+    const objectId = new mongoose.Types.ObjectId(_id);
+
+    // Find and update the company
+    const deletedItem = await AdditionalItem.findOneAndUpdate(
+      { _id: objectId, isDel: false },
+      { isDel: true, updatedAt: new Date() },
+      { new: true }
+    );
+
+    if (!deletedItem) {
+      return res.status(404).json({
+        success: false,
+        message: `Additional Item not found or already deleted`,
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Additional Item deleted successfully`,
+      data: deletedItem,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error deleting Additional Item",
+      error: error.message,
+    });
+  }
+};

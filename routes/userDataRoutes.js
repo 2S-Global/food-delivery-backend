@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 import { v2 as cloudinary } from 'cloudinary';
 import userAuth from "../middleware/authMiddleware.js";
 import adminMiddleware from "../middleware/adminMiddleware.js";
-import { toggleStatus, deleteCustomer, listDeliveryBoys, addMenu, listAllMenu, editMenu, deleteMenu, addAdditionalItem, listAdditionalItems } from "../controllers/userDataController.js";
+import { toggleStatus, deleteCustomer, listDeliveryBoys, addMenu, listAllMenu, editMenu, deleteMenu, addAdditionalItem, listAdditionalItems, editAdditionalItem, deleteAdditionalItem } from "../controllers/userDataController.js";
 
 // Initialize dotenv to load environment variables
 dotenv.config();
@@ -42,5 +42,11 @@ userDataRouter.post("/add-additional-item", upload.array("newImages", 10), userA
 
 // List Additional Items
 userDataRouter.get("/list-additional-items", userAuth, adminMiddleware, listAdditionalItems);
+
+// Edit Additional Items
+userDataRouter.put("/edit-additional-items/:_id", upload.array("newImages", 10), userAuth, adminMiddleware, editAdditionalItem );
+
+// Delete Additional Items
+userDataRouter.delete("/delete-additional-item", upload.none(), userAuth, adminMiddleware, deleteAdditionalItem);
 
 export default userDataRouter;
