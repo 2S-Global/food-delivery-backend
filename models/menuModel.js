@@ -19,23 +19,63 @@ const menuSchema = new mongoose.Schema(
       trim: true,
     },
 
+    item1: {
+      type: String,
+      trim: true,
+    },
+
+    description1: {
+      type: String,
+      trim: true,
+    },
+
+    item2: {
+      type: String,
+      trim: true,
+    },
+
+    description2: {
+      type: String,
+      trim: true,
+    },
+
+    item3: {
+      type: String,
+      trim: true,
+    },
+
+    description3: {
+      type: String,
+      trim: true,
+    },
+
+    item4: {
+      type: String,
+      trim: true,
+    },
+
+    description4: {
+      type: String,
+      trim: true,
+    },
+
     images: {
       type: [String],
       required: true,
     },
 
-    dayType: {
-      type: String,
-      required: true,
-      enum: [
-        "Monday",
-        "Tuesday",
-        "Wednesday",
-        "Thursday",
-        "Friday",
-        "Saturday",
-      ],
-    },
+    // dayType: {
+    //   type: String,
+    //   required: true,
+    //   enum: [
+    //     "Monday",
+    //     "Tuesday",
+    //     "Wednesday",
+    //     "Thursday",
+    //     "Friday",
+    //     "Saturday",
+    //   ],
+    // },
 
     mealType: {
       type: String,

@@ -11,6 +11,25 @@ const isQuillEmpty = (value) => {
   return cleaned.length === 0;
 };
 
+// const isQuillEmpty = (value) => {
+//   // If it's an array, check all elements
+//   if (Array.isArray(value)) {
+//     return value.every((v) => isQuillEmpty(v)); // recursive check
+//   }
+
+//   // If it's null/undefined
+//   if (value == null) return true;
+
+//   // If it's not a string, convert to string (or treat as empty)
+//   if (typeof value !== "string") {
+//     value = String(value);
+//   }
+
+//   const cleaned = value.replace(/<(.|\n)*?>/g, "").trim();
+//   return cleaned.length === 0;
+// };
+
+
 // Toggle Status
 export const toggleStatus = async (req, res) => {
   try {
@@ -209,10 +228,21 @@ export const addMenu = async (req, res) => {
     const {
       menuName,
       menuType,
+      item1,
+      description1,
+      item2,
+      description2,
+      item3,
+      description3,
+      item4,
+      description4,
       description,
       dayType,
       mealType,
     } = req.body;
+
+
+    console.log("Here is my all data---------", req.body);
 
     if (!menuName || !menuType) {
       return res.status(400).json({
@@ -228,12 +258,12 @@ export const addMenu = async (req, res) => {
       });
     }
 
-    if (!dayType) {
-      return res.status(400).json({
-        success: false,
-        message: "Day is required",
-      });
-    }
+    // if (!dayType) {
+    //   return res.status(400).json({
+    //     success: false,
+    //     message: "Day is required",
+    //   });
+    // }
 
     if (!mealType) {
       return res.status(400).json({
@@ -274,8 +304,16 @@ export const addMenu = async (req, res) => {
     const newMenu = new Menu({
       menuName,
       menuType,
+      item1,
+      description1: isQuillEmpty(description1) ? "" : description1,
+      item2,
+      description2: isQuillEmpty(description2) ? "" : description2,
+      item3,
+      description3: isQuillEmpty(description3) ? "" : description3,
+      item4,
+      description4: isQuillEmpty(description4) ? "" : description4,
       description: isQuillEmpty(description) ? "" : description,
-      dayType,
+      // dayType,
       mealType,
       images: uploadedImages,
     });
@@ -307,6 +345,14 @@ export const editMenu = async (req, res) => {
       menuName,
       menuType,
       description,
+      item1,
+      description1,
+      item2,
+      description2,
+      item3,
+      description3,
+      item4,
+      description4,
       dayType,
       mealType,
       oldImages = []   // whatever images user kept
@@ -347,6 +393,14 @@ export const editMenu = async (req, res) => {
         menuName,
         menuType,
         description,
+        item1,
+        description1,
+        item2,
+        description2,
+        item3,
+        description3,
+        item4,
+        description4,
         dayType,
         mealType,
         images: finalImages,
@@ -375,7 +429,7 @@ export const listAllMenu = async (req, res) => {
     // Fetch all users with role 1 and not deleted
     const allMenus = await Menu.find({
       isDel: false
-    }).select("menuName menuType description images dayType mealType createdAt");
+    }).select("menuName menuType description item1 description1 item2 description2 item3 description3 item4 description4 images dayType mealType createdAt");
 
     // If no data found
     if (!allMenus.length) {
