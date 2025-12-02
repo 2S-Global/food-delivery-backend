@@ -1,5 +1,6 @@
 import Order from "../models/orderModel.js";
 import OrderDetail from "../models/orderDetailsModel.js";
+import User from "../models/userModel.js";
 
 function generateOrderId() {
   const now = new Date();
@@ -88,4 +89,56 @@ export const addOrder = async (req, res) => {
             error: error.message,
         });
     }
+};
+
+// List All Order API
+export const listAllOrder = async (req, res) => {
+  try {
+    // Fetch all users with role 1 and not deleted
+    const allOrders = await Order.find({ isDel: false }).populate("user_id", "name");
+    // console.log("Here I am getting all Orders: ", allOrders);
+
+    // If no data found
+    if (!allOrders.length) {
+      return res.status(404).json({
+        success: false,
+        message: "No Order List found"
+      });
+    }
+
+    // Map data before sending
+    const formattedOrders = allOrders.map((order) => {
+        const formattedDate = order.createdAt.toLocaleString("en-GB", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      });
+
+        return {
+        _id: order._id,
+        orderId: order.order_id,
+        customer: order.user_id?.name || "Unknown",
+        date: formattedDate,
+        total: order.grand_total,
+        status: order.status,
+      };
+    });
+
+    // Success response
+    return res.status(200).json({
+      success: true,
+      message: "Order fetched successfully",
+      data: formattedOrders,
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Error fetching Orders",
+      error: error.message
+    });
+  }
 };

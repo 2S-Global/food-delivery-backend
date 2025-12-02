@@ -11,24 +11,6 @@ const isQuillEmpty = (value) => {
   return cleaned.length === 0;
 };
 
-// const isQuillEmpty = (value) => {
-//   // If it's an array, check all elements
-//   if (Array.isArray(value)) {
-//     return value.every((v) => isQuillEmpty(v)); // recursive check
-//   }
-
-//   // If it's null/undefined
-//   if (value == null) return true;
-
-//   // If it's not a string, convert to string (or treat as empty)
-//   if (typeof value !== "string") {
-//     value = String(value);
-//   }
-
-//   const cleaned = value.replace(/<(.|\n)*?>/g, "").trim();
-//   return cleaned.length === 0;
-// };
-
 
 // Toggle Status
 export const toggleStatus = async (req, res) => {
