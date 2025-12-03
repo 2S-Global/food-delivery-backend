@@ -1,6 +1,7 @@
 import Order from "../models/orderModel.js";
 import OrderDetail from "../models/orderDetailsModel.js";
 import User from "../models/userModel.js";
+import mongoose from "mongoose";
 
 function generateOrderId() {
   const now = new Date();
@@ -139,6 +140,50 @@ export const listAllOrder = async (req, res) => {
       success: false,
       message: "Error fetching Orders",
       error: error.message
+    });
+  }
+};
+
+// Delete Order API
+export const deleteOrder = async (req, res) => {
+  try {
+    const { _id } = req.query;
+
+    console.log("Delete Order ID:", _id);
+
+    // Validate and convert companyId to ObjectId
+    if (!mongoose.Types.ObjectId.isValid(_id)) {
+      return res
+        .status(400)
+        .json({ success: false, message: `Invalid Order ID` });
+    }
+
+    const objectId = new mongoose.Types.ObjectId(_id);
+
+    // Find and update the company
+    const deletedOrder = await Order.findOneAndUpdate(
+      { _id: objectId, isDel: false },
+      { isDel: true, updatedAt: new Date() },
+      { new: true }
+    );
+
+    if (!deletedOrder) {
+      return res.status(404).json({
+        success: false,
+        message: `Order not found or already deleted`,
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Order deleted successfully`,
+      data: deletedOrder,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error deleting Order",
+      error: error.message,
     });
   }
 };
