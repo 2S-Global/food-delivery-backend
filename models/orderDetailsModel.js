@@ -23,6 +23,13 @@ const OrderDetailsSchema = new mongoose.Schema(
             trim: true,
         },
 
+        // Item Price
+        item_price: {
+            type: Number,
+            required: true,
+            default: 0,
+        },
+
         // How many of this item were ordered
         item_quantity: {
             type: Number,
