@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 import { v2 as cloudinary } from 'cloudinary';
 import userAuth from "../middleware/authMiddleware.js";
 import adminMiddleware from "../middleware/adminMiddleware.js";
-import { addOrder, listAllOrder, deleteOrder, listOrderItems } from "../controllers/OrderController.js"
+import { addOrder, listAllOrder, deleteOrder, listOrderItems, getOrderSummary, OrdersChartByStatus } from "../controllers/OrderController.js"
 
 // Initialize dotenv to load environment variables
 dotenv.config();
@@ -31,5 +31,9 @@ addOrderRouter.get("/list-all-order", userAuth, adminMiddleware, listAllOrder);
 addOrderRouter.post("/delete-order", upload.none(), userAuth, adminMiddleware, deleteOrder);
 // List Order items
 addOrderRouter.get("/list-order-items", userAuth, adminMiddleware, listOrderItems);
+// Get Order Summary
+addOrderRouter.get("/get-order-summary", userAuth, adminMiddleware, getOrderSummary);
+// Get Order By Status
+addOrderRouter.get("/orders-chart-by-status", userAuth, adminMiddleware, OrdersChartByStatus);
 
 export default addOrderRouter;

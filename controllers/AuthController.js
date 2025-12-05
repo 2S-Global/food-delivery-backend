@@ -440,7 +440,8 @@ export const listCustomers = async (req, res) => {
     // Fetch all users with role 1 and not deleted
     const candidates = await User.find({
       role: 1,
-      is_del: false
+      is_del: false,
+      user_type: "customer",
     }).select("name email phone_number is_active createdAt");
 
     // If no data found

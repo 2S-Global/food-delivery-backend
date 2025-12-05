@@ -1,6 +1,8 @@
 import Order from "../models/orderModel.js";
 import OrderDetail from "../models/orderDetailsModel.js";
 import User from "../models/userModel.js";
+import menuModel from "../models/menuModel.js";
+import additionalItemModel from "../models/additionalItemModel.js";
 import mongoose from "mongoose";
 
 function generateOrderId() {
@@ -253,6 +255,113 @@ export const listOrderItems = async (req, res) => {
       success: false,
       message: "Error fetching Orders",
       error: error.message
+    });
+  }
+};
+
+// Get Order Summary
+export const getOrderSummary = async (req, res) => {
+  try {
+
+    const [
+      totalOrders,
+      totalMenus,
+      totalCustomers,
+      totalDeliveryBoys,
+      totalAdditionalItems,
+      revenueAgg,
+    ] = await Promise.all([
+      Order.countDocuments({ isDel: false }),
+      menuModel.countDocuments({ isDel: false }),
+      User.countDocuments({
+      role: 1,
+      is_del: false,
+      user_type: "customer",
+    }),
+      User.countDocuments({
+      role: 2,
+      is_del: false,
+      user_type: "delivery_boy",
+    }),
+      additionalItemModel.countDocuments({ isDel: false }),
+      Order.aggregate([
+        {
+          $match: {
+            isDel: false,
+            status: { $ne: "CANCELLED" }, // ignore cancelled orders
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            totalRevenue: { $sum: "$grand_total" },
+          },
+        },
+      ]),
+    ]);
+
+    const totalRevenue = revenueAgg?.[0]?.totalRevenue || 0;
+
+    return res.status(200).json({
+      success: true,
+      message: "Order Summary fetched successfully!",
+      data: {
+        totalOrders,
+        totalMenus,
+        totalRevenue,
+        totalCustomers,
+        totalDeliveryBoys,
+        totalAdditionalItems,
+      },
+    });
+  } catch (error) {
+    console.error("Error in getOrderSummary:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Error fetching Order Summary",
+      error: error.message,
+    });
+  }
+};
+
+// Get Orders Chart By Status
+export const OrdersChartByStatus = async (req, res) => {
+  try {
+    const result = await Order.aggregate([
+      {
+        $match: {
+          isDel: false, // ignore soft-deleted
+        },
+      },
+      {
+        $group: {
+          _id: "$status",           // group by status
+          orderCount: { $sum: 1 },  // count docs in each group
+        },
+      },
+      {
+        $sort: { _id: 1 },          // sort by status name (optional)
+      },
+    ]);
+
+    // Format response as { status, orderCount }
+    const data = result.map((item) => ({
+      status: item._id,
+      orderCount: item.orderCount,
+    }));
+
+    return res.status(200).json({
+      success: true,
+      message: "Orders by status fetched successfully!",
+      data,
+    });
+  } catch (error) {
+    console.error("Error in getOrdersByStatus:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error fetching orders by status",
+      error: error.message,
     });
   }
 };
