@@ -274,15 +274,15 @@ export const getOrderSummary = async (req, res) => {
       Order.countDocuments({ isDel: false }),
       menuModel.countDocuments({ isDel: false }),
       User.countDocuments({
-      role: 1,
-      is_del: false,
-      user_type: "customer",
-    }),
+        role: 1,
+        is_del: false,
+        user_type: "customer",
+      }),
       User.countDocuments({
-      role: 2,
-      is_del: false,
-      user_type: "delivery_boy",
-    }),
+        role: 2,
+        is_del: false,
+        user_type: "delivery_boy",
+      }),
       additionalItemModel.countDocuments({ isDel: false }),
       Order.aggregate([
         {
@@ -361,6 +361,305 @@ export const OrdersChartByStatus = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Error fetching orders by status",
+      error: error.message,
+    });
+  }
+};
+
+// Get Revenue By Status
+export const RevenueByStatus = async (req, res) => {
+  try {
+    const result = await Order.aggregate([
+      {
+        $match: {
+          isDel: false,
+        },
+      },
+      {
+        $group: {
+          _id: "$status",
+          totalRevenue: { $sum: "$grand_total" },
+        },
+      },
+      {
+        $sort: { _id: 1 },
+      },
+    ]);
+
+    const data = result.map((item) => ({
+      status: item._id,
+      totalRevenue: item.totalRevenue,
+    }));
+
+    return res.status(200).json({
+      success: true,
+      message: "Revenue by status fetched successfully!",
+      data,
+    });
+  } catch (error) {
+    console.error("Error in getRevenueByStatus:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error fetching revenue by status",
+      error: error.message,
+    });
+  }
+};
+
+// Get Revenue By Date
+export const RevenueByDate = async (req, res) => {
+  try {
+    const days = Number(req.query.days) || 7;
+
+    // From date = today - (days - 1)
+    const fromDate = new Date();
+    fromDate.setHours(0, 0, 0, 0);
+    fromDate.setDate(fromDate.getDate() - (days - 1));
+
+    const result = await Order.aggregate([
+      {
+        $match: {
+          isDel: false,
+          status: { $ne: "CANCELLED" }, // don't count cancelled in revenue
+          order_date: { $gte: fromDate },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            $dateToString: { format: "%Y-%m-%d", date: "$order_date" },
+          },
+          totalRevenue: { $sum: "$grand_total" },
+          orderCount: { $sum: 1 }, // also get count of orders for chart
+        },
+      },
+      {
+        $sort: { _id: 1 }, // sort by date ascending
+      },
+    ]);
+
+    const data = result.map((item) => ({
+      date: item._id,
+      totalRevenue: item.totalRevenue,
+      orderCount: item.orderCount,
+    }));
+
+    return res.status(200).json({
+      success: true,
+      message: "Revenue by date fetched successfully!",
+      data,
+    });
+  } catch (error) {
+    console.error("Error in fetched revenue by date:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error fetching revenue by date",
+      error: error.message,
+    });
+  }
+};
+
+// Get Orders By Date
+export const OrdersByDate = async (req, res) => {
+  try {
+    const days = Number(req.query.days) || 7;
+
+    // From date = today - (days - 1)
+    const fromDate = new Date();
+    fromDate.setHours(0, 0, 0, 0); // start from midnight
+    fromDate.setDate(fromDate.getDate() - (days - 1));
+
+    const result = await Order.aggregate([
+      {
+        $match: {
+          isDel: false,              // ignore soft-deleted orders
+          order_date: { $gte: fromDate }, // only last N days
+        },
+      },
+      {
+        $group: {
+          _id: {
+            $dateToString: { format: "%Y-%m-%d", date: "$order_date" },
+          },
+          orderCount: { $sum: 1 },   // count orders for that date
+        },
+      },
+      {
+        $sort: { _id: 1 },           // sort by date ascending
+      },
+    ]);
+
+    const data = result.map((item) => ({
+      date: item._id,
+      orderCount: item.orderCount,
+    }));
+
+    return res.status(200).json({
+      success: true,
+      message: "Orders by date fetched successfully!",
+      data,
+    });
+  } catch (error) {
+    console.error("Error in fetched revenue by date:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error fetching revenue by date",
+      error: error.message,
+    });
+  }
+};
+
+// Get Customers Growth
+export const CustomersGrowth = async (req, res) => {
+  try {// year from query ?year=2025, else current year
+    const year = Number(req.query.year) || new Date().getFullYear();
+
+    // Start = 1 Jan of that year, End = 1 Jan of next year
+    const startDate = new Date(year, 0, 1);      // Jan 1, 00:00:00
+    const endDate = new Date(year + 1, 0, 1);    // Jan 1 next year
+
+    const aggResult = await User.aggregate([
+      {
+        $match: {
+          // if you have soft delete flag, add isDel: false here
+          role: 1,
+          is_del: false,
+          user_type: "customer",
+          createdAt: { $gte: startDate, $lt: endDate },
+        },
+      },
+      {
+        $group: {
+          _id: { month: { $month: "$createdAt" } }, // 1..12
+          customerCount: { $sum: 1 },               // how many joined that month
+        },
+      },
+      {
+        $sort: { "_id.month": 1 }, // Jan → Dec
+      },
+    ]);
+
+    // Prepare 12 months with 0 by default
+    const monthNames = [
+      "January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December",
+    ];
+
+    const countsByMonth = new Map();
+    aggResult.forEach((item) => {
+      countsByMonth.set(item._id.month, item.customerCount);
+    });
+
+    // total customers in that year → for percentage in legend
+    const totalInYear = aggResult.reduce(
+      (sum, item) => sum + item.customerCount,
+      0
+    );
+
+    const data = monthNames.map((name, index) => {
+      const monthNumber = index + 1; // 1..12
+      const customerCount = countsByMonth.get(monthNumber) || 0;
+      const percentage =
+        totalInYear === 0
+          ? 0
+          : Math.round((customerCount / totalInYear) * 100); // e.g. 75%
+
+      return {
+        monthNumber,                       // 1..12
+        monthName: `${name} ${year}`,      // "January 2025"
+        customerCount,                     // how many joined
+        percentage,                        // share of that year
+      };
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: `Customer growth by month for ${year} fetched successfully!`,
+      data,
+    });
+  } catch (error) {
+    console.error("Error in fetched Customers by month:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error fetching Customers by month",
+      error: error.message,
+    });
+  }
+};
+
+// Get Delivery Partners Growth
+export const DeliveryPartnersGrowth = async (req, res) => {
+  try {// year from query ?year=2025, else current year
+    const year = Number(req.query.year) || new Date().getFullYear();
+
+    // Start = 1 Jan of that year, End = 1 Jan of next year
+    const startDate = new Date(year, 0, 1);      // Jan 1, 00:00:00
+    const endDate = new Date(year + 1, 0, 1);    // Jan 1 next year
+
+    const aggResult = await User.aggregate([
+      {
+        $match: {
+          // if you have soft delete flag, add isDel: false here
+          role: 2,
+          is_del: false,
+          user_type: "delivery_boy",
+          createdAt: { $gte: startDate, $lt: endDate },
+        },
+      },
+      {
+        $group: {
+          _id: { month: { $month: "$createdAt" } }, // 1..12
+          customerCount: { $sum: 1 },               // how many joined that month
+        },
+      },
+      {
+        $sort: { "_id.month": 1 }, // Jan → Dec
+      },
+    ]);
+
+    // Prepare 12 months with 0 by default
+    const monthNames = [
+      "January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December",
+    ];
+
+    const countsByMonth = new Map();
+    aggResult.forEach((item) => {
+      countsByMonth.set(item._id.month, item.customerCount);
+    });
+
+    // total customers in that year → for percentage in legend
+    const totalInYear = aggResult.reduce(
+      (sum, item) => sum + item.customerCount,
+      0
+    );
+
+    const data = monthNames.map((name, index) => {
+      const monthNumber = index + 1; // 1..12
+      const customerCount = countsByMonth.get(monthNumber) || 0;
+      const percentage =
+        totalInYear === 0
+          ? 0
+          : Math.round((customerCount / totalInYear) * 100); // e.g. 75%
+
+      return {
+        monthNumber,                       // 1..12
+        monthName: `${name} ${year}`,      // "January 2025"
+        customerCount,                     // how many joined
+        percentage,                        // share of that year
+      };
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: `Delivery Partners growth by month for ${year} fetched successfully!`,
+      data,
+    });
+  } catch (error) {
+    console.error("Error in fetched Delivery Partners by month:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error fetching Delivery Partners by month",
       error: error.message,
     });
   }

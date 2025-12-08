@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 import { v2 as cloudinary } from 'cloudinary';
 import userAuth from "../middleware/authMiddleware.js";
 import adminMiddleware from "../middleware/adminMiddleware.js";
-import { addOrder, listAllOrder, deleteOrder, listOrderItems, getOrderSummary, OrdersChartByStatus } from "../controllers/OrderController.js"
+import { addOrder, listAllOrder, deleteOrder, listOrderItems, getOrderSummary, OrdersChartByStatus, RevenueByStatus, RevenueByDate, OrdersByDate, CustomersGrowth, DeliveryPartnersGrowth } from "../controllers/OrderController.js"
 
 // Initialize dotenv to load environment variables
 dotenv.config();
@@ -35,5 +35,15 @@ addOrderRouter.get("/list-order-items", userAuth, adminMiddleware, listOrderItem
 addOrderRouter.get("/get-order-summary", userAuth, adminMiddleware, getOrderSummary);
 // Get Order By Status
 addOrderRouter.get("/orders-chart-by-status", userAuth, adminMiddleware, OrdersChartByStatus);
+// Get Revenue By Status
+addOrderRouter.get("/revenue-by-status", userAuth, adminMiddleware, RevenueByStatus);
+// Get Revenue By Date
+addOrderRouter.get("/revenue-by-date", userAuth, adminMiddleware, RevenueByDate);
+// Get Orders By Date
+addOrderRouter.get("/orders-by-date", userAuth, adminMiddleware, OrdersByDate);
+// Get Customers By months
+addOrderRouter.get("/customers-by-month", userAuth, adminMiddleware, CustomersGrowth);
+// Get Delivery Partners By months
+addOrderRouter.get("/delivery-partners-by-month", userAuth, adminMiddleware, DeliveryPartnersGrowth);
 
 export default addOrderRouter;
