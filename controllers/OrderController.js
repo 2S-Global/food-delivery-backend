@@ -60,6 +60,7 @@ export const addOrder = async (req, res) => {
     const order = await Order.create({
       order_id,
       order_date: new Date(),
+      // order_date: new Date("2025-12-09T10:00:00Z"),
       user_id,
       total_amount,
       shipping_amount: shipping,
