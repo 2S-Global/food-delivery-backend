@@ -24,6 +24,49 @@ export const addOrder = async (req, res) => {
       return res.status(400).json({ message: "items array is required" });
     }
 
+    // --- collect ids to fetch images in batch ---
+    const menuIds = new Set();
+    const addonIds = new Set();
+
+    // Frontend should ideally send item_type to indicate source collection.
+    // Fallback: if item.item_details contains images, we will use that.
+    for (const it of items) {
+
+      // console.log("Loop is running: ");
+      const id = it.item_id;
+      const type = it.item_type;
+
+      // console.log("Here is my item type: ", type);
+
+      if (!id) continue;
+      if (type === 'menu' || type === 'Menu') menuIds.add(id);
+      else if (type === 'additional_item' || type === 'Additional_Item') addonIds.add(id);
+      // if type missing, we will attempt to find images from item_details later
+    }
+
+    // console.log("Here is my all collected Id for menu: ", menuIds);
+    // console.log("Here is my all collected Id for additional Item: ", addonIds);
+
+    // Fetch both collections in parallel (only if IDs present)
+    const [menus, addons] = await Promise.all([
+      menuIds.size ? menuModel.find({ _id: { $in: Array.from(menuIds) } }).lean() : Promise.resolve([]),
+      addonIds.size ? additionalItemModel.find({ _id: { $in: Array.from(addonIds) } }).lean() : Promise.resolve([])
+    ]);
+
+    // console.log("First result from menus : ", menus);
+    // console.log("Sceond result from additional items : ", addons);
+
+    const menuMap = new Map(menus.map(m => [String(m._id), m]));
+    const addonMap = new Map(addons.map(a => [String(a._id), a]));
+
+    // console.log("First result from menuMap : ", menuMap);
+    // console.log("Sceond result from addonMap : ", addonMap);
+
+
+
+    // return;
+
+
     // When value will come from frontend
     /*
     const shipping = Number(shipping_amount) || 0;
@@ -71,6 +114,8 @@ export const addOrder = async (req, res) => {
     });
 
     // 2) create order details for each item
+
+    /*
     const orderDetailsDocs = itemsWithTotals.map((item) => ({
       order_id,
       item_id: item.item_id,
@@ -79,6 +124,42 @@ export const addOrder = async (req, res) => {
       item_quantity: item.item_quantity,
       total_amount: item.total_amount
     }));
+    */
+
+    // --- build orderDetailsDocs with images/thumbnail copied from DB maps or frontend item_details ---
+    const orderDetailsDocs = itemsWithTotals.map((item) => {
+      const id = item.item_id;
+      // Try to find the source doc first in menuMap then in addonMap
+      const menuDoc = menuMap.get(String(id));
+      const addonDoc = addonMap.get(String(id));
+
+      // Prefer DB images when available; fallback to frontend-provided item_details.images
+      let images = [];
+      if (menuDoc && Array.isArray(menuDoc.images) && menuDoc.images.length) {
+        images = menuDoc.images;
+      } else if (addonDoc && Array.isArray(addonDoc.images) && addonDoc.images.length) {
+        images = addonDoc.images;
+      } else if (item.item_details && Array.isArray(item.item_details.images) && item.item_details.images.length) {
+        images = item.item_details.images;
+      }
+
+      // thumbnail is the first image if exists (or null)
+      const item_image = images.length ? images[0] : null;
+
+      return {
+        order_id,
+        item_id: item.item_id,
+        item_details: item.item_details,
+        item_price: item.item_price,
+        item_quantity: item.item_quantity,
+        total_amount: item.total_amount,
+        images,
+        item_image
+      };
+    });
+
+    console.log("Here is my Order Details Docs: ", orderDetailsDocs);
+
 
     const orderDetails = await OrderDetail.insertMany(orderDetailsDocs);
 

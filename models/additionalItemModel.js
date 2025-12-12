@@ -8,6 +8,11 @@ const additionalItemSchema = new mongoose.Schema(
       trim: true,
     },
 
+    item_type: {
+      type: String,
+      required: true,
+    },
+
     itemPrice: {
       type: String,
       required: true,

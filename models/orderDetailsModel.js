@@ -23,6 +23,11 @@ const OrderDetailsSchema = new mongoose.Schema(
             trim: true,
         },
 
+        item_image: {
+            type: String,
+            required: true,
+        },
+
         // Item Price
         item_price: {
             type: Number,

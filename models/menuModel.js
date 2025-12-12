@@ -13,6 +13,11 @@ const menuSchema = new mongoose.Schema(
       required: true,
     },
 
+    item_type: {
+      type: String,
+      required: true,
+    },
+
     description: {
       type: String,
       required: true,
