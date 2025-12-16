@@ -3,6 +3,7 @@ import OrderDetail from "../models/orderDetailsModel.js";
 import User from "../models/userModel.js";
 import menuModel from "../models/menuModel.js";
 import additionalItemModel from "../models/additionalItemModel.js";
+import UserSubscription from "../models/userSubscriptionModel.js";
 import mongoose from "mongoose";
 
 function generateOrderId() {
@@ -11,10 +12,205 @@ function generateOrderId() {
   return `ORD-${datePart}-${Date.now()}`;
 }
 
+
+// Add Order API
+export const addOrder123 = async (req, res) => {
+  try {
+    const { user_id, items } = req.body;
+
+    if (!user_id) {
+      return res.status(400).json({ message: "user_id is required" });
+    }
+
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ message: "items array is required" });
+    }
+
+    // --- collect ids to fetch images in batch ---
+    const menuIds = new Set();
+    const addonIds = new Set();
+
+    // Frontend should ideally send item_type to indicate source collection.
+    // Fallback: if item.item_details contains images, we will use that.
+    for (const it of items) {
+
+      // console.log("Loop is running: ");
+      const id = it.item_id;
+      const type = it.item_type;
+
+      // console.log("Here is my item type: ", type);
+
+      if (!id) continue;
+      if (type === 'menu' || type === 'Menu') menuIds.add(id);
+      else if (type === 'additional_item' || type === 'Additional_Item') addonIds.add(id);
+      // if type missing, we will attempt to find images from item_details later
+    }
+
+    // console.log("Here is my all collected Id for menu: ", menuIds);
+    // console.log("Here is my all collected Id for additional Item: ", addonIds);
+
+    // Fetch both collections in parallel (only if IDs present)
+    const [menus, addons] = await Promise.all([
+      menuIds.size ? menuModel.find({ _id: { $in: Array.from(menuIds) } }).lean() : Promise.resolve([]),
+      addonIds.size ? additionalItemModel.find({ _id: { $in: Array.from(addonIds) } }).lean() : Promise.resolve([])
+    ]);
+
+    // console.log("First result from menus : ", menus);
+    // console.log("Sceond result from additional items : ", addons);
+
+    const menuMap = new Map(menus.map(m => [String(m._id), m]));
+    const addonMap = new Map(addons.map(a => [String(a._id), a]));
+
+    // console.log("First result from menuMap : ", menuMap);
+    // console.log("Sceond result from addonMap : ", addonMap);
+
+
+
+    // return;
+
+
+    // When value will come from frontend
+    /*
+    const shipping = Number(shipping_amount) || 0;
+    const taxAmount = Number(tax) || 0;
+    */
+
+    let total_amount = 0;
+
+    // compute totals for each item
+    const itemsWithTotals = items.map((item) => {
+      const price = Number(item.item_price) || 0;
+      const qty = Number(item.item_quantity) || 0;
+
+      const lineTotal = price * qty;
+      total_amount += lineTotal;
+
+      return {
+        item_id: item.item_id,
+        item_details: item.item_details,
+        item_quantity: qty,
+        total_amount: lineTotal,
+        item_price: item.item_price
+      };
+    });
+
+    const shipping = 50; // fixed shipping charge
+    const TAX_RATE = 0.05;
+    const taxAmount = Math.round(total_amount * TAX_RATE); // 31
+
+    const grand_total = total_amount + shipping + taxAmount;
+    const order_id = generateOrderId();
+
+    // 1) create main order
+    const order = await Order.create({
+      order_id,
+      order_date: new Date(),
+      // order_date: new Date("2025-12-09T10:00:00Z"),
+      user_id,
+      total_amount,
+      shipping_amount: shipping,
+      tax: taxAmount,
+      grand_total,
+      status: "PLACED",
+      is_del: false
+    });
+
+    // 2) create order details for each item
+
+    /*
+    const orderDetailsDocs = itemsWithTotals.map((item) => ({
+      order_id,
+      item_id: item.item_id,
+      item_details: item.item_details,
+      item_price: item.item_price,
+      item_quantity: item.item_quantity,
+      total_amount: item.total_amount
+    }));
+    */
+
+    // --- build orderDetailsDocs with images/thumbnail copied from DB maps or frontend item_details ---
+    const orderDetailsDocs = itemsWithTotals.map((item) => {
+      const id = item.item_id;
+      // Try to find the source doc first in menuMap then in addonMap
+      const menuDoc = menuMap.get(String(id));
+      const addonDoc = addonMap.get(String(id));
+
+      // Prefer DB images when available; fallback to frontend-provided item_details.images
+      let images = [];
+      if (menuDoc && Array.isArray(menuDoc.images) && menuDoc.images.length) {
+        images = menuDoc.images;
+      } else if (addonDoc && Array.isArray(addonDoc.images) && addonDoc.images.length) {
+        images = addonDoc.images;
+      } else if (item.item_details && Array.isArray(item.item_details.images) && item.item_details.images.length) {
+        images = item.item_details.images;
+      }
+
+      // thumbnail is the first image if exists (or null)
+      const item_image = images.length ? images[0] : null;
+
+      return {
+        order_id,
+        item_id: item.item_id,
+        item_details: item.item_details,
+        item_price: item.item_price,
+        item_quantity: item.item_quantity,
+        total_amount: item.total_amount,
+        images,
+        item_image
+      };
+    });
+
+    console.log("Here is my Order Details Docs: ", orderDetailsDocs);
+
+
+    const orderDetails = await OrderDetail.insertMany(orderDetailsDocs);
+
+    return res.status(200).json({
+      message: "Order created successfully",
+      order,
+      items: orderDetails
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error saving order.",
+      error: error.message,
+    });
+  }
+};
+
 // Add Order API
 export const addOrder = async (req, res) => {
   try {
     const { user_id, items } = req.body;
+
+    // extra code added for subscription started ----
+
+    /*
+    let activeSubscription = await UserSubscription.findOne({
+      userId: user_id,
+      status: "ACTIVE",
+      endDate: { $gte: new Date() },
+    });
+
+    if (!activeSubscription) {
+      const startDate = new Date();
+      const endDate = new Date();
+      endDate.setDate(startDate.getDate() + weeks * 7);
+
+      activeSubscription = await UserSubscription.create({
+        userId: user_id,
+        mealType,
+        planDurationWeeks: weeks,
+        startDate,
+        endDate,
+      });
+    }
+    */
+
+    // extra code added for subscription ended ----
+
 
     if (!user_id) {
       return res.status(400).json({ message: "user_id is required" });
