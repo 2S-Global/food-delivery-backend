@@ -22,7 +22,7 @@ app.get("/", (req, res) => {
   res.send("Welcome to the back end of the Food Delivery App ");
 });
 
-// Register and Login Routes
+// Register and Login Routes By Chandra
 app.use("/api/auth", AuthRouter);
 app.use("/api/userdata", userDataRouter);
 app.use("/api/order", addOrderRouter);
