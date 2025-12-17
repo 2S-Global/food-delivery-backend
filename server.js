@@ -16,6 +16,7 @@ app.use(express.urlencoded({ extended: true }));
 import AuthRouter from "./routes/AuthRoutes.js";
 import userDataRouter from "./routes/userDataRoutes.js";
 import addOrderRouter from "./routes/addOrderRoutes.js";
+import userMenuRouter from "./routes/userMenuRoutes.js";
 
 // Testing Routes
 app.get("/", (req, res) => {
@@ -26,6 +27,7 @@ app.get("/", (req, res) => {
 app.use("/api/auth", AuthRouter);
 app.use("/api/userdata", userDataRouter);
 app.use("/api/order", addOrderRouter);
+app.use("/api/usermenu", userMenuRouter);
 
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {

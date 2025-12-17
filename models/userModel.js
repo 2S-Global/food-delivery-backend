@@ -24,6 +24,24 @@ const userSchema = new mongoose.Schema(
     phone_number: {
       type: String,
     },
+    /* Newly added profile fields started */
+    country: {
+      type: String,
+      trim: true,
+    },
+    state: {
+      type: String,
+      trim: true,
+    },
+    city: {
+      type: String,
+      trim: true,
+    },
+    address: {
+      type: String,
+      trim: true,
+    },
+    /* Newly added profile fields ended */
     createdAt: {
       type: Date,
       default: Date.now,

@@ -2,6 +2,8 @@ import User from "../models/userModel.js";
 import Menu from "../models/menuModel.js";
 import AdditionalItem from "../models/additionalItemModel.js";
 import { v2 as cloudinary } from 'cloudinary';
+import bcrypt from "bcrypt";
+import nodemailer from "nodemailer";
 import mongoose from "mongoose";
 
 const isQuillEmpty = (value) => {
@@ -709,6 +711,190 @@ export const deleteAdditionalItem = async (req, res) => {
       success: false,
       message: "Error deleting Additional Item",
       error: error.message,
+    });
+  }
+};
+
+// Get User Details
+export const getUserDetails = async (req, res) => {
+  try {
+    // userId comes from JWT (set in auth middleware)
+    const userId = req.userId;
+
+    const user = await User.findById(userId).select(
+      "-password -__v"
+    );
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "User details fetched successfully",
+      data: user,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch user details",
+      error: error.message,
+    });
+  }
+};
+
+// Update User Details
+export const updateUserDetails = async (req, res) => {
+  try {
+    const userId = req.userId;
+
+    const {
+      name,
+      email,
+      phone_number,
+      country,
+      state,
+      city,
+      address,
+    } = req.body;
+
+    const updateData = {};
+
+    if (name) updateData.name = name;
+    // if (email) updateData.email = email;
+    // if (phone_number) updateData.phone_number = phone_number;
+    if (country) updateData.country = country;
+    if (state) updateData.state = state;
+    if (city) updateData.city = city;
+    if (address) updateData.address = address;
+
+    // Upload only if file exists
+    if (req.file) {
+      const result = await new Promise((resolve, reject) => {
+        cloudinary.uploader
+          .upload_stream(
+            { folder: "profile_images" },
+            (err, uploadResult) => {
+              if (err) reject(err);
+              else resolve(uploadResult);
+            }
+          )
+          .end(req.file.buffer);
+      });
+
+      updateData.profilePicture = result.secure_url;
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      updateData,
+      { new: true, runValidators: true }
+    ).select("-password -__v");
+
+    if (!updatedUser) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Profile updated successfully",
+      data: updatedUser,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to update profile",
+      error: error.message,
+    });
+  }
+};
+
+// Reset Password API
+
+// Generate random secure password
+const generatePassword = () => {
+  return (
+    Math.random().toString(36).slice(-5) +
+    "@" +
+    Math.floor(10 + Math.random() * 90)
+  );
+};
+
+// Send reset password email
+const sendResetPasswordEmail = async (email, name, newPassword) => {
+  const transporter = nodemailer.createTransport({
+    host: process.env.EMAIL_HOST,
+    port: process.env.EMAIL_PORT,
+    secure: true, // true if using 465
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+  });
+
+  await transporter.sendMail({
+    from: `"Food Go" <${process.env.EMAIL_USER}>`,
+    to: email,
+    subject: "Password Reset Request",
+    html: `
+      <p><img src="https://res.cloudinary.com/da4unxero/image/upload/v1765973312/profile_images/frpev7nwwzig1fmamka5.jpg" width="150"/></p>
+      <p>Hello ${name},</p>
+      <p>You requested a password reset.</p>
+      <p>Your new auto-generated password is:</p>
+      <h3>${newPassword}</h3>
+      <p>Please login and change your password immediately.</p>
+    `,
+  });
+};
+
+// Forgot Password API
+export const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: "Email is required",
+      });
+    }
+
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "No user found with this email",
+      });
+    }
+
+    const newPassword = generatePassword();
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    user.password = hashedPassword;
+    await user.save();
+
+    await sendResetPasswordEmail(
+      user.email,
+      user.name || "User",
+      newPassword
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "New password has been sent to your email",
+    });
+  } catch (error) {
+    console.error("Forgot Password Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
     });
   }
 };

@@ -136,6 +136,87 @@ export const registerCustomer = async (req, res) => {
       expiresIn: "30d",
     });
 
+
+    // Email Verification mail starts from here
+
+    const transporterEmailVerification = nodemailer.createTransport({
+      host: process.env.EMAIL_HOST,
+      port: process.env.EMAIL_PORT,
+      secure: true,
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+
+    const mailOptionsEmailVerification = {
+      from: `"Food Go Team" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: "Access Credentials for Food Go",
+      html: `
+      <div style="text-align: center; margin-bottom: 20px;">
+    <img src="https://res.cloudinary.com/da4unxero/image/upload/v1745565670/QuikChek%20images/New%20banner%20images/bx5dt5rz0zdmowryb0bz.jpg" alt="Banner" style="width: 100%; height: auto;" />
+  </div>
+        <p>Dear <strong>${name}</strong>,</p>
+        <p>Greetings from <strong>Food Go</strong>.</p>
+        <p>
+          We are pleased to provide you with access to our newly launched platform, <a href="https://food-go-frontend.vercel.app" target="_blank">https://food-go-frontend.vercel.app</a>, <strong>Food Go</strong>, a hostel-focused meal delivery and subscription management platform designed to simplify daily food services. The system offers structured meal subscriptions for both <strong>vegetarian</strong> and <strong>non-vegetarian</strong> menus.
+          <br /><br />
+          Users can choose a subscription with a <strong>minimum duration of one week</strong>, with the flexibility to extend the plan for <strong>2, 3, 4, 5 weeks or more</strong> based on their requirements. Each active subscription includes <strong>two meals per day</strong>—<strong>lunch and dinner</strong>—ensuring consistent and timely meal delivery.
+          <br /><br />
+          In addition to the standard meals, the platform also provides <strong>optional add-on items</strong> such as salads, milk, and soft drinks, allowing users to customize their daily food intake. Food Go streamlines subscription management, meal selection, and add-on purchases, making it an efficient and user-friendly solution for hostel meal services.
+        </p>
+
+  
+        <p>Your corporate account has been successfully created with the following credentials:</p>
+        <ul>
+          <li><strong>Email:</strong> ${email}</li>
+          <li><strong>Password:</strong> ${password}</li>
+        </ul>
+
+       <p>Click the link  to verify your email: <a href="${process.env.CLIENT_BASE_URL}/api/auth/verify-email?token=${token}">Verify Email</a></p>
+      
+        <p><strong>Key Features and Benefits of Food Go:</strong></p>
+        <ul>
+          <li>Meal Subscription Management: Users can subscribe to structured meal plans with a minimum duration of one week.</li>
+          <li>Veg & Non-Veg Menu Options: Separate vegetarian and non-vegetarian menus are available based on user preference.</li>
+          <li>Flexible Subscription Duration: Users can extend subscriptions for multiple weeks (2, 3, 4, 5 weeks or more).</li>
+          <li>Daily Meal Delivery: Each active subscription includes two meals per day — lunch and dinner.</li>
+          <li>Additional Items Selection: Optional add-on items such as salads, milk, and soft drinks can be selected along with meals.</li>
+          <li>Easy Management: Users can manage subscriptions, view meal details, and track delivery status through the platform.</li>
+          <li>Secure Platform: User data and subscription details are securely managed with proper data protection.</li>
+        </ul>
+      
+        <p>
+          We are confident that <strong>Food Go</strong> will simplify hostel meal management by offering a reliable, flexible, and user-friendly subscription-based food delivery experience for both users and service providers.
+        </p>
+      
+        <p>
+          For any assistance with the platform, including login issues or technical support, please contact our support team at:
+        </p>
+        <ul>
+          <li><strong>Email:</strong> <a href="mailto:info@geisil.com">info@geisil.com</a></li>
+          <li><strong>Phone:</strong> 9831823898</li>
+        </ul>
+      
+        <p>Thank you for choosing <strong>Food Go</strong>.</p>
+        <p>We look forward to supporting your daily meal needs through a reliable and flexible subscription-based food delivery experience.</p>
+      
+        <br />
+        <p>Sincerely,<br />
+        The Admin Team<br />
+        <strong>Food GO</strong></p>
+
+         <div style="text-align: center; margin-top: 30px;">
+      <img src="https://res.cloudinary.com/da4unxero/image/upload/v1746776002/QuikChek%20images/ntvxq8yy2l9de25t1rmu.png" alt="Footer" style="width:97px; height: 116px;" />
+    </div>
+      `,
+    };
+
+    await transporterEmailVerification.sendMail(mailOptionsEmailVerification);
+
+
+
     res.status(201).json({
       success: true,
       message: "User registered and logged in successfully!",
