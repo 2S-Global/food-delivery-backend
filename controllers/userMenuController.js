@@ -1,5 +1,6 @@
 import menuModel from "../models/menuModel.js";
 import additionalItemModel from "../models/additionalItemModel.js";
+import SubscriptionPrice from "../models/subscriptionPriceModel.js";
 import mongoose from "mongoose";
 
 // List all user Menu
@@ -101,6 +102,70 @@ export const getItemDetailsById = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Error fetching item details",
+      error: error.message,
+    });
+  }
+};
+
+// Add Subscription Price
+export const addSubscriptionPrice = async (req, res) => {
+  try {
+    const { veg_price, non_veg_price } = req.body;
+
+    // If nothing provided
+    if (veg_price == null && non_veg_price == null) {
+      return res.status(400).json({
+        success: false,
+        message: "At least one price is required (vegPrice or nonVegPrice)",
+      });
+    }
+
+    // Validation
+    if (non_veg_price < 0 || non_veg_price < 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Price cannot be negative",
+      });
+    }
+
+    // check existing active price
+    let activePrice = await SubscriptionPrice.findOne({
+      isActive: true,
+      isDel: false,
+    });
+
+    // If exists → update only fields provided
+    if (activePrice) {
+      if (veg_price != null) activePrice.vegPrice = veg_price;
+      if (non_veg_price != null) activePrice.nonVegPrice = non_veg_price;
+
+      activePrice = await activePrice.save();
+
+      return res.status(200).json({
+        success: true,
+        message: "Subscription price updated successfully",
+        data: activePrice,
+      });
+    }
+
+    // No active price exists → create new
+    const newPrice = new SubscriptionPrice({
+      vegPrice: veg_price ?? 0,
+      nonVegPrice: non_veg_price ?? 0,
+    });
+
+    await newPrice.save();
+
+    res.status(201).json({
+      success: true,
+      message: "New subscription price added successfully",
+      data: newPrice,
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to add/update price",
       error: error.message,
     });
   }
