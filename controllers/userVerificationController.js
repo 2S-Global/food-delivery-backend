@@ -4,6 +4,8 @@
 // import Transaction from "../models/Transaction.js";
 
 import UserCart from "../models/userCartModel.js";
+import AllOrdersData from "../models/allOrders.js";
+import Transaction from "../models/transactionModel.js";
 
 export const paynow123Chandra = async (req, res) => {
   try {
@@ -13,7 +15,7 @@ export const paynow123Chandra = async (req, res) => {
       return res.status(400).json({ success: false, message: "User ID missing" });
     }
 
-    const { 
+    const {
       razorpay_payment_id,
       razorpay_order_id,
       razorpay_signature,
@@ -37,9 +39,9 @@ export const paynow123Chandra = async (req, res) => {
     if (payment_method === "online") {
 
       if (!razorpay_payment_id || !razorpay_order_id || !razorpay_signature) {
-        return res.status(400).json({ 
+        return res.status(400).json({
           success: false,
-          message: "Missing Razorpay payment verification fields" 
+          message: "Missing Razorpay payment verification fields"
         });
       }
 
@@ -59,7 +61,7 @@ export const paynow123Chandra = async (req, res) => {
     }
 
     // ORDER CREATION AFTER SUCCESS
-    const order = new Order({
+    const order = new AllOrdersData({
       user_id: userId,
       items: cart.items,
       total_price: amount,
@@ -76,11 +78,15 @@ export const paynow123Chandra = async (req, res) => {
     const transaction = new Transaction({
       user_id: userId,
       order_id: savedOrder._id,
-      amount,
-      method: payment_method,
-      payment_id: razorpay_payment_id || null,
-      type: "debit",
-      createdAt: new Date()
+      amount: amount,
+      payment_method: payment_method,
+      payment_status: "success",                     // payment succeeded
+      razorpay_payment_id: razorpay_payment_id || null,
+      razorpay_order_id: razorpay_order_id || null,
+      razorpay_signature: razorpay_signature || null,
+      transaction_type: "debit",                     // customer paying
+      transaction_id: `TXN-${Date.now()}`,           // unique transaction ref
+      is_deleted: false
     });
 
     await transaction.save();
