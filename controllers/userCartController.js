@@ -2,17 +2,49 @@ import additionalItemModel from "../models/additionalItemModel.js";
 import SubscriptionPrice from "../models/subscriptionPriceModel.js";
 import UserCart from "../models/userCartModel.js"
 
+import Razorpay from "razorpay";
+import crypto from "crypto";
+
+// Configure Razorpay instance
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID,
+  key_secret: process.env.RAZORPAY_KEY_SECRET,
+});
+
 // Add to cart API
 export const userAddToCart = async (req, res) => {
   try {
     const userId = req.userId;
-    const { subscription_type, weeks, additional_items } = req.body;
+    const { subscription_type, start_date, end_date, additional_items } = req.body;
 
     // Validate input
-    if (!subscription_type || !weeks) {
+    if (!subscription_type || !start_date || !end_date) {
       return res.status(400).json({
         success: false,
-        message: "subscription_type and weeks are required",
+        message: "subscription_type, start_date and end_date are required",
+      });
+    }
+
+    // Parse dates
+    const startDate = new Date(start_date);
+    const endDate = new Date(end_date);
+
+    if (isNaN(startDate) || isNaN(endDate)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid date format",
+      });
+    }
+
+    // Calculate week difference
+    const diffInMs = Math.abs(endDate - startDate);
+    const diffDays = Math.ceil(diffInMs / (1000 * 60 * 60 * 24)); // convert ms to days
+    const weeks = Math.ceil(diffDays / 7); // convert days to weeks
+
+    if (endDate <= startDate) {
+      return res.status(400).json({
+        success: false,
+        message: "end_date must be greater than start_date",
       });
     }
 
@@ -78,6 +110,8 @@ export const userAddToCart = async (req, res) => {
           {
             subscription_type,
             weeks,
+            start_date: startDate,
+            end_date: endDate,
             meal_count: mealCount,
             additional_items: addonItems,
             total_price: totalPrice,
@@ -89,6 +123,8 @@ export const userAddToCart = async (req, res) => {
       cart.items.push({
         subscription_type,
         weeks,
+        start_date: startDate,
+        end_date: endDate,
         meal_count: mealCount,
         additional_items: addonItems,
         total_price: totalPrice,
@@ -235,5 +271,77 @@ export const deleteUserCart = async (req, res) => {
       message: "Error deleting cart item",
       error: error.message,
     });
+  }
+};
+
+export const checkoutPay = async (req, res) => {
+  try {
+    const userId = req.userId;
+
+    // 1. Get user cart
+    const cart = await UserCart.findOne({ user_id: userId });
+
+    if (!cart || cart.items.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Cart is empty",
+      });
+    }
+
+    // 2. Calculate payable amount
+    let totalPayable = 0;
+
+    for (const item of cart.items) {
+      totalPayable += item.total_price;
+    }
+
+    // Razorpay expects amount in paise, multiply by 100
+    const payment_amount = totalPayable * 100;
+
+    console.log("Here is the total payment_amount: ", payment_amount);
+
+    console.log("KEY ID:", process.env.RAZORPAY_KEY_ID);
+    console.log("KEY SECRET:", process.env.RAZORPAY_KEY_SECRET);
+
+    // 3. Create order in Razorpay
+    const order = await razorpay.orders.create({
+      amount: payment_amount,
+      currency: "INR",
+      receipt: `receipt_${Date.now()}`,
+    });
+
+
+    console.log("Here is the total payment_amount: ", payment_amount);
+
+    // 4. Store payment intent/order in database
+    // optional if you want to link order to user cart
+
+    return res.status(200).json({
+      success: true,
+      message: "Payment order created successfully",
+      order_id: order.id,
+      amount: payment_amount,
+      currency: "INR",
+      cart: cart,
+    });
+
+  } catch (error) {
+    // return res.status(500).json({
+    //   success: false,
+    //   message: "Checkout failed",
+    //   error: error.message,
+    // });
+
+
+    console.log("Razorpay full error ===>");
+    console.log(error);               // prints full object
+
+    return res.status(500).json({
+      success: false,
+      message: "Checkout failed",
+      error: error
+    });
+
+
   }
 };

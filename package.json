@@ -22,6 +22,7 @@
     "libphonenumber-js": "^1.12.26",
     "mongoose": "^8.19.4",
     "multer": "^2.0.2",
-    "nodemailer": "^7.0.10"
+    "nodemailer": "^7.0.10",
+    "razorpay": "^2.9.6"
   }
 }

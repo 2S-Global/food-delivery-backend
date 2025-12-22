@@ -5,7 +5,7 @@ import { v2 as cloudinary } from 'cloudinary';
 import userAuth from "../middleware/authMiddleware.js";
 // import adminMiddleware from "../middleware/adminMiddleware.js";
 
-import {userAddToCart, getUserCart, deleteUserCart} from "../controllers/userCartController.js"
+import {userAddToCart, getUserCart, deleteUserCart, checkoutPay} from "../controllers/userCartController.js"
 
 // Initialize dotenv to load environment variables
 dotenv.config();
@@ -32,5 +32,8 @@ userCartRouter.get("/list-usercart", userAuth, getUserCart);
 
 // Delete user cart API
 userCartRouter.delete("/delete-usercart", upload.none(), userAuth, deleteUserCart);
+
+// Checkout API
+userCartRouter.get("/checkout-pay", upload.none(), userAuth, checkoutPay);
 
 export default userCartRouter;
