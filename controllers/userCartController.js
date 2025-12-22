@@ -17,6 +17,8 @@ export const userAddToCart = async (req, res) => {
     const userId = req.userId;
     const { subscription_type, start_date, end_date, additional_items } = req.body;
 
+    console.log("Here is my request body: ", req.body);
+
     // Validate input
     if (!subscription_type || !start_date || !end_date) {
       return res.status(400).json({
@@ -101,6 +103,8 @@ export const userAddToCart = async (req, res) => {
 
     // Check whether cart already exists
     let cart = await UserCart.findOne({ user_id: userId });
+
+    console.log("Dang Dang till here it is running: ", cart);
 
     if (!cart) {
       // Create new cart with first item
