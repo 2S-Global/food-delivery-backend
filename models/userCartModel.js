@@ -16,11 +16,17 @@ const userCartSchema = new mongoose.Schema(
           enum: ["veg", "non-veg"],
           required: true,
         },
+
         weeks: {
           type: Number,
           required: true,
           min: 1,
         },
+
+        start_date: { type: Date, required: true },
+
+        end_date: { type: Date, required: true },
+
         meal_count: {
           type: Number,
           required: true,
