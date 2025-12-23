@@ -1,6 +1,7 @@
 import additionalItemModel from "../models/additionalItemModel.js";
 import SubscriptionPrice from "../models/subscriptionPriceModel.js";
 import UserCart from "../models/userCartModel.js"
+import { calculateAddonDeliveries } from "./Helpers/calculateAddonDeliveries.js"
 
 import Razorpay from "razorpay";
 import crypto from "crypto";
@@ -84,6 +85,7 @@ export const userAddToCart = async (req, res) => {
     // Add-ons handling
     let addonItems = [];
 
+    /*
     if (additional_items && Array.isArray(additional_items)) {
       for (const item of additional_items) {
         const addon = await additionalItemModel.findById(item.item_id);
@@ -98,6 +100,67 @@ export const userAddToCart = async (req, res) => {
         }
       }
     }
+    */
+
+    if (additional_items && Array.isArray(additional_items)) {
+      for (const item of additional_items) {
+
+        if (
+          !item.item_id ||
+          !item.addon_schedule_type ||
+          !item.addon_start_date
+        ) {
+          return res.status(400).json({
+            success: false,
+            message:
+              "item_id, addon_start_date and addon_schedule_type are required for additional items",
+          });
+        }
+
+        const addonStartDate = new Date(item.addon_start_date);
+
+        if (isNaN(addonStartDate.getTime())) {
+          return res.status(400).json({
+            success: false,
+            message: "Invalid addon_start_date format",
+          });
+        }
+
+        const addon = await additionalItemModel.findById(item.item_id);
+        if (!addon) {
+          return res.status(404).json({
+            success: false,
+            message: `Additional item not found: ${item.item_id}`,
+          });
+        }
+
+        const deliveryCount = calculateAddonDeliveries(
+          addonStartDate,
+          endDate,
+          item.addon_schedule_type
+        );
+
+        console.log("Calculated deliveryCount: ", deliveryCount);
+
+        const quantity = item.quantity || 1;
+
+        const addonTotalPrice =
+          addon.itemPrice * quantity * deliveryCount;
+
+        totalPrice += addonTotalPrice;
+
+        addonItems.push({
+          item_id: item.item_id,
+          quantity,
+          addon_schedule_type: item.addon_schedule_type,
+          addon_start_date: addonStartDate,
+          delivery_count: deliveryCount,
+          item_price: addon.itemPrice,
+          total_price: addonTotalPrice,
+        });
+      }
+    }
+
 
     // MAIN CART LOGIC
 

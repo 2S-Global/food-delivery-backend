@@ -41,6 +41,15 @@ const userCartSchema = new mongoose.Schema(
               type: Number,
               default: 1,
             },
+            addon_start_date: {
+              type: Date,
+              required: true
+            },
+            addon_schedule_type: {
+              type: String,
+              enum: ["daily", "alternate", "every_3_days", "weekly", "monthly"],
+              required: true,
+            },
           },
         ],
         total_price: {
