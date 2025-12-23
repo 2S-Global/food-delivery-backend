@@ -3,8 +3,7 @@ import multer from "multer";
 import dotenv from 'dotenv';
 import { v2 as cloudinary } from 'cloudinary';
 import userAuth from "../middleware/authMiddleware.js";
-import adminMiddleware from "../middleware/adminMiddleware.js";
-import {listUserMenu, getItemDetailsById, addSubscriptionPrice, listMealType} from "../controllers/userMenuController.js";
+import { listUserOrders } from "../controllers/userOrderController.js";
 
 // Initialize dotenv to load environment variables
 dotenv.config();
@@ -17,19 +16,15 @@ cloudinary.config({
 });
 
 // Initialize router
-const userMenuRouter = express.Router();
+const userOrderRouter = express.Router();
 
 // Setup multer with memory storage for handling file uploads
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
-// All List Menu API
-userMenuRouter.get("/list-menu", listUserMenu);
-// Item details API
-userMenuRouter.get("/item-details", getItemDetailsById);
-// List Meal Type API
-userMenuRouter.get("/list-meal-type", listMealType);
-// API for Add Subscription Price
-userMenuRouter.post("/add-subscription-price", upload.none(), userAuth, adminMiddleware, addSubscriptionPrice);
+// List Order items
+userOrderRouter.get("/list-order-items", userAuth, adminMiddleware, listOrderItems);
+// List User Orders
+userOrderRouter.get("/list-user-orders", userAuth, listUserOrders);
 
-export default userMenuRouter;
+export default userOrderRouter;

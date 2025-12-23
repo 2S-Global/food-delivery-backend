@@ -5,52 +5,52 @@ import mongoose from "mongoose";
 
 // List all user Menu
 export const listUserMenu = async (req, res) => {
-    try {
-        const { type } = req.query;
+  try {
+    const { type } = req.query;
 
-        let data = [];
+    let data = [];
 
-        // CASE 1: VEG MENU
-        if (type === "veg") {
-            data = await menuModel.find({
-                menuType: "Veg",
-                isDel: false,
-            });
+    // CASE 1: VEG MENU
+    if (type === "veg") {
+      data = await menuModel.find({
+        menuType: "Veg",
+        isDel: false,
+      });
 
-            // CASE 2: NON-VEG MENU
-        } else if (type === "non-veg") {
-            data = await menuModel.find({
-                menuType: "Non-Veg",
-                isDel: false,
-            });
+      // CASE 2: NON-VEG MENU
+    } else if (type === "non-veg") {
+      data = await menuModel.find({
+        menuType: "Non-Veg",
+        isDel: false,
+      });
 
-            // CASE 3: ADDITIONAL ITEMS
-        } else if (type === "additional-items") {
-            data = await additionalItemModel.find({
-                isDel: false,
-            });
+      // CASE 3: ADDITIONAL ITEMS
+    } else if (type === "additional-items") {
+      data = await additionalItemModel.find({
+        isDel: false,
+      });
 
-            // CASE 4: INVALID TYPE
-        } else {
-            return res.status(400).json({
-                success: false,
-                message: "Invalid type. Allowed values: veg, non-veg, additional-items",
-            });
-        }
-
-        return res.status(200).json({
-            success: true,
-            message: "User menu fetched successfully",
-            data,
-        });
-
-    } catch (error) {
-        return res.status(500).json({
-            success: false,
-            message: "Error fetching user menu",
-            error: error.message,
-        });
+      // CASE 4: INVALID TYPE
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid type. Allowed values: veg, non-veg, additional-items",
+      });
     }
+
+    return res.status(200).json({
+      success: true,
+      message: "User menu fetched successfully",
+      data,
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Error fetching user menu",
+      error: error.message,
+    });
+  }
 };
 
 // List Item Details
@@ -166,6 +166,45 @@ export const addSubscriptionPrice = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to add/update price",
+      error: error.message,
+    });
+  }
+};
+
+// List Meal Types API
+export const listMealType = async (req, res) => {
+  try {
+    // Fetch first Veg menu
+    const vegMenu = await menuModel.findOne({
+      menuType: "Veg",
+      isDel: false,
+    });
+
+    // Fetch first Non-Veg menu
+    const nonVegMenu = await menuModel.findOne({
+      menuType: "Non-Veg",
+      isDel: false,
+    });
+
+    // Fetch first Additional Item
+    const additionalItem = await additionalItemModel.findOne({
+      isDel: false,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "User menu fetched successfully",
+      data: {
+        veg: vegMenu || null,
+        non_veg: nonVegMenu || null,
+        additional_item: additionalItem || null,
+      },
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Error fetching user menu",
       error: error.message,
     });
   }

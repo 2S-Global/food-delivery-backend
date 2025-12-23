@@ -33,6 +33,7 @@ app.use("/api/usermenu", userMenuRouter);
 app.use("/api/usercart", userCartRouter);
 app.use("/api/payment", paymentRouter);
 app.use("/api/verify", userVerificationRoutes);
+app.use("/api/user-order", addOrderRouter);
 
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {

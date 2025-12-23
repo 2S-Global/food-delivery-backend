@@ -13,7 +13,7 @@ const userCartSchema = new mongoose.Schema(
       {
         subscription_type: {
           type: String,
-          enum: ["veg", "non-veg"],
+          enum: ["veg", "non_veg"],
           required: true,
         },
 
