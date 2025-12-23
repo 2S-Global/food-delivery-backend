@@ -10,7 +10,7 @@ const additionalItemSchema = new mongoose.Schema(
 
     item_type: {
       type: String,
-      required: true,
+
     },
 
     itemPrice: {
@@ -36,5 +36,6 @@ const additionalItemSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
 
 export default mongoose.model("AdditionalItem", additionalItemSchema);
