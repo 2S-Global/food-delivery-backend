@@ -3,7 +3,7 @@ import multer from "multer";
 import dotenv from 'dotenv';
 import { v2 as cloudinary } from 'cloudinary';
 import userAuth from "../middleware/authMiddleware.js";
-import { listUserOrders } from "../controllers/userOrderController.js";
+import { listUserOrders, getUserOrderDetails } from "../controllers/userOrderController.js";
 
 // Initialize dotenv to load environment variables
 dotenv.config();
@@ -22,9 +22,10 @@ const userOrderRouter = express.Router();
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
-// List Order items
-userOrderRouter.get("/list-order-items", userAuth, adminMiddleware, listOrderItems);
 // List User Orders
 userOrderRouter.get("/list-user-orders", userAuth, listUserOrders);
+
+// List Order details API
+userOrderRouter.get("/list-order-details", userAuth, getUserOrderDetails);
 
 export default userOrderRouter;
