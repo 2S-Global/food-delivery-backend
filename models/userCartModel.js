@@ -87,6 +87,7 @@ const userCartSchema = new mongoose.Schema(
               },
             },
           ],
+          default: undefined,
           required: function () {
             return this.item_type === "additional_item";
           },
