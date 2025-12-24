@@ -503,13 +503,20 @@ export const deleteMenu = async (req, res) => {
 };
 
 // Add Additional Item API
-export const addAdditionalItem = async (req, res) => {
+export const addAdditionalItem123 = async (req, res) => {
   try {
     const {
       itemName,
       itemPrice,
       description,
     } = req.body;
+
+    console.log("Body:", req.body);
+    console.log("Files:", req.files);
+    console.log("Files length:", req.files?.length);
+
+
+
 
     if (!itemName || !itemPrice) {
       return res.status(400).json({
@@ -535,6 +542,9 @@ export const addAdditionalItem = async (req, res) => {
     const uploadedImages = [];
     // Upload each file to Cloudinary
     for (const file of req.files) {
+
+      console.log("Uploading file new issue by Chandra : ", file.originalname);
+
       const result = await new Promise((resolve, reject) => {
         cloudinary.uploader
           .upload_stream({ folder: "additionalitems" }, (err, uploadResult) => {
@@ -570,6 +580,92 @@ export const addAdditionalItem = async (req, res) => {
     });
   }
 };
+
+export const addAdditionalItem = async (req, res) => {
+  try {
+    const { itemName, itemPrice, description } = req.body;
+
+    console.log("Body:", req.body);
+    console.log("Files:", req.files);
+    console.log("Files length:", req.files?.length);
+
+    // Basic validation
+    if (!itemName || !itemPrice) {
+      return res.status(400).json({
+        success: false,
+        message: "Item Name and Item Price are required",
+      });
+    }
+
+    if (isQuillEmpty(description)) {
+      return res.status(400).json({
+        success: false,
+        message: "Description is required",
+      });
+    }
+
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "At least one image is required",
+      });
+    }
+
+    const uploadedImages = [];
+
+    for (const file of req.files) {
+      if (!file.buffer) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid image file",
+        });
+      }
+
+      console.log("Uploading file:", file.originalname);
+
+      const uploadResult = await new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          { folder: "additionalitems" },
+          (error, result) => {
+            if (error) {
+              console.error("Cloudinary upload error:", error);
+              reject(error);
+            } else {
+              resolve(result);
+            }
+          }
+        );
+
+        stream.end(file.buffer);
+      });
+
+      uploadedImages.push(uploadResult.secure_url);
+    }
+
+    const newItem = new AdditionalItem({
+      itemName,
+      itemPrice,
+      description,
+      images: uploadedImages,
+    });
+
+    await newItem.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Additional Item added successfully",
+      data: newItem,
+    });
+
+  } catch (error) {
+    console.error("Add Additional Item Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Internal Server Error",
+    });
+  }
+};
+
 
 // List All Additional Items
 export const listAdditionalItems = async (req, res) => {
