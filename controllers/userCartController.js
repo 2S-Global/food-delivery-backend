@@ -13,7 +13,7 @@ const razorpay = new Razorpay({
 });
 
 // Add to cart API
-export const userAddToCart = async (req, res) => {
+export const userAddToCart123 = async (req, res) => {
   try {
     const userId = req.userId;
     const { subscription_type, start_date, end_date, additional_items } = req.body;
@@ -216,6 +216,202 @@ export const userAddToCart = async (req, res) => {
     });
   }
 };
+
+export const userAddToCart = async (req, res) => {
+  try {
+    const userId = req.userId;
+    const { item_type } = req.body;
+
+    if (!item_type) {
+      return res.status(400).json({
+        success: false,
+        message: "item_type is required",
+      });
+    }
+
+    let cart = await UserCart.findOne({ user_id: userId });
+    if (!cart) {
+      cart = new UserCart({ user_id: userId, items: [] });
+    }
+
+    /* ======================================================
+       CASE 1: ADD / UPDATE SUBSCRIPTION
+    ====================================================== */
+    if (item_type === "subscription") {
+      const { subscription_type, start_date, end_date } = req.body;
+
+      if (!subscription_type || !start_date || !end_date) {
+        return res.status(400).json({
+          success: false,
+          message: "subscription_type, start_date, end_date are required",
+        });
+      }
+
+      if (!["veg", "non_veg"].includes(subscription_type)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid subscription_type",
+        });
+      }
+
+      const startDate = new Date(start_date);
+      const endDate = new Date(end_date);
+
+      if (isNaN(startDate) || isNaN(endDate) || endDate <= startDate) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid start_date or end_date",
+        });
+      }
+
+      const diffDays = Math.ceil(
+        (endDate - startDate) / (1000 * 60 * 60 * 24)
+      );
+      const weeks = Math.ceil(diffDays / 7);
+      const mealCount = weeks * 13;
+
+      const priceDoc = await SubscriptionPrice.findOne();
+      if (!priceDoc) {
+        return res.status(404).json({
+          success: false,
+          message: "Subscription price not found",
+        });
+      }
+
+      const perWeekPrice =
+        subscription_type === "veg"
+          ? priceDoc.vegPrice
+          : priceDoc.nonVegPrice;
+
+      const totalPrice = perWeekPrice * weeks;
+
+      // Remove existing subscription
+      // cart.items = cart.items.filter(
+      //   (i) => i.item_type !== "subscription"
+      // );
+
+      cart.items.push({
+        item_type: "subscription",
+        subscription_type,
+        start_date: startDate,
+        end_date: endDate,
+        weeks,
+        meal_count: mealCount,
+        total_price: totalPrice,
+      });
+    }
+
+    /* ======================================================
+       CASE 2: ADD / UPDATE ADDITIONAL ITEMS
+    ====================================================== */
+    if (item_type === "additional_item") {
+      const { additional_items } = req.body;
+
+      if (!Array.isArray(additional_items) || additional_items.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: "additional_items is required",
+        });
+      }
+
+      // Subscription must exist
+      const subscription = cart.items.find(
+        (i) => i.item_type === "subscription"
+      );
+
+      if (!subscription) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Please add a subscription before adding additional items",
+        });
+      }
+
+      let totalAddonPrice = 0;
+      const addonItems = [];
+
+      for (const item of additional_items) {
+        const {
+          item_id,
+          quantity = 1,
+          addon_start_date,
+          addon_schedule_type,
+        } = item;
+
+        if (!item_id || !addon_start_date || !addon_schedule_type) {
+          return res.status(400).json({
+            success: false,
+            message:
+              "item_id, addon_start_date and addon_schedule_type are required",
+          });
+        }
+
+        const addonStartDate = new Date(addon_start_date);
+        if (isNaN(addonStartDate)) {
+          return res.status(400).json({
+            success: false,
+            message: "Invalid addon_start_date",
+          });
+        }
+
+        const addon = await additionalItemModel.findById(item_id);
+        if (!addon) {
+          return res.status(404).json({
+            success: false,
+            message: `Additional item not found: ${item_id}`,
+          });
+        }
+
+        const deliveryCount = calculateAddonDeliveries(
+          addonStartDate,
+          subscription.end_date,
+          addon_schedule_type
+        );
+
+        const itemTotal =
+          addon.itemPrice * quantity * deliveryCount;
+
+        totalAddonPrice += itemTotal;
+
+        addonItems.push({
+          item_id,
+          quantity,
+          addon_start_date: addonStartDate,
+          addon_schedule_type,
+        });
+      }
+
+      // Remove existing add-ons
+      // cart.items = cart.items.filter(
+      //   (i) => i.item_type !== "additional_item"
+      // );
+
+      cart.items.push({
+        item_type: "additional_item",
+        additional_items: addonItems,
+        total_price: totalAddonPrice,
+      });
+    }
+
+    await cart.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Cart updated successfully",
+      data: cart,
+    });
+  } catch (error) {
+    console.error("Add to cart error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error adding to cart",
+      error: error.message,
+    });
+  }
+};
+
+
+
 
 export const getUserCart = async (req, res) => {
   try {

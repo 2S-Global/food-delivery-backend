@@ -5,53 +5,93 @@ const userCartSchema = new mongoose.Schema(
   {
     user_id: {
       type: mongoose.Schema.Types.ObjectId,
-      required: true,
       ref: "User",
-      unique: true,          // recommended
+      required: true,
+      unique: true,
     },
+
     items: [
       {
-        subscription_type: {
+        // 🔹 NEW (minimal addition)
+        item_type: {
           type: String,
-          enum: ["veg", "non_veg"],
+          enum: ["subscription", "additional_item"],
           required: true,
         },
 
-        start_date: { type: Date, required: true },
+        // ===== Subscription fields (UNCHANGED) =====
+        subscription_type: {
+          type: String,
+          enum: ["veg", "non_veg"],
+          required: function () {
+            return this.item_type === "subscription";
+          },
+        },
 
-        end_date: { type: Date, required: true },
+        start_date: {
+          type: Date,
+          required: function () {
+            return this.item_type === "subscription";
+          },
+        },
+
+        end_date: {
+          type: Date,
+          required: function () {
+            return this.item_type === "subscription";
+          },
+        },
 
         weeks: {
           type: Number,
-          required: true,
           min: 1,
+          required: function () {
+            return this.item_type === "subscription";
+          },
         },
 
         meal_count: {
           type: Number,
-          required: true,
-        },
-        additional_items: [
-          {
-            item_id: {
-              type: mongoose.Schema.Types.ObjectId,
-              ref: "AdditionalItem",
-            },
-            quantity: {
-              type: Number,
-              default: 1,
-            },
-            addon_start_date: {
-              type: Date,
-              required: true
-            },
-            addon_schedule_type: {
-              type: String,
-              enum: ["daily", "alternate", "every_3_days", "weekly", "monthly"],
-              required: true,
-            },
+          required: function () {
+            return this.item_type === "subscription";
           },
-        ],
+        },
+
+        // ===== Additional items (MOVED, not deleted) =====
+        additional_items: {
+          type: [
+            {
+              item_id: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "AdditionalItem",
+                required: true,
+              },
+              quantity: {
+                type: Number,
+                default: 1,
+              },
+              addon_start_date: {
+                type: Date,
+                required: true,
+              },
+              addon_schedule_type: {
+                type: String,
+                enum: [
+                  "daily",
+                  "alternate",
+                  "every_3_days",
+                  "weekly",
+                  "monthly",
+                ],
+                required: true,
+              },
+            },
+          ],
+          required: function () {
+            return this.item_type === "additional_item";
+          },
+        },
+
         total_price: {
           type: Number,
           required: true,
@@ -61,7 +101,6 @@ const userCartSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
-
 
 const UserCart = mongoose.model("UserCart", userCartSchema);
 

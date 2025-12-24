@@ -55,10 +55,14 @@ app.use("/api/verify", userVerificationRoutes);
 app.use("/api/user-order", userOrderRouter);
 
 const PORT = process.env.PORT || 8080;
-// app.listen(PORT, () => {
-//   console.log(`Server running on port ${PORT}`);
 
-// });
+// For Local environment testing started
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+
+});
+
+// For Local environment testing started
 
 export default app;
-
