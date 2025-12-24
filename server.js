@@ -55,8 +55,10 @@ app.use("/api/verify", userVerificationRoutes);
 app.use("/api/user-order", userOrderRouter);
 
 const PORT = process.env.PORT || 8080;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+// app.listen(PORT, () => {
+//   console.log(`Server running on port ${PORT}`);
 
-});
+// });
+
+export default app;
 
