@@ -58,11 +58,10 @@ const PORT = process.env.PORT || 8080;
 
 // For Local environment testing started
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+// app.listen(PORT, () => {
+//   console.log(`Server running on port ${PORT}`);
 
-});
+// });
 
 // For Local environment testing started
-
 export default app;
