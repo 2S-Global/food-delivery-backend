@@ -38,8 +38,8 @@ userDataRouter.delete("/delete-menu", upload.none(), userAuth, adminMiddleware, 
 userDataRouter.get("/list-all-menu", userAuth, adminMiddleware, listAllMenu);
 
 // Add Additional Item
-userDataRouter.post("/add-additional-item", upload.array("newImages", 10), userAuth, adminMiddleware, addAdditionalItem);
-
+// userDataRouter.post("/add-additional-item", upload.array("newImages", 10), userAuth, adminMiddleware, addAdditionalItem);
+userDataRouter.post("/add-additional-item",userAuth,adminMiddleware,upload.array("newImages", 10),addAdditionalItem);
 // List Additional Items
 userDataRouter.get("/list-additional-items", userAuth, adminMiddleware, listAdditionalItems);
 
@@ -57,5 +57,6 @@ userDataRouter.post("/update-user-details", upload.single("profileImage"), userA
 
 // Forgot Password API
 userDataRouter.post("/forgot-password", upload.none(), userAuth, forgotPassword);
+
 
 export default userDataRouter;
