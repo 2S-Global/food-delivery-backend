@@ -13,7 +13,8 @@ app.use(
   cors({
     origin: [
       "https://food-delivery-frontend-ten-theta.vercel.app",
-      "http://localhost:3000"
+      "http://localhost:3000",
+      "https://food-go-frontend.vercel.app"
     ],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
@@ -60,5 +61,6 @@ const PORT = process.env.PORT || 8080;
 //   console.log(`Server running on port ${PORT}`);
 
 // });
+
 
 export default app;
