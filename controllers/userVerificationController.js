@@ -36,6 +36,9 @@ export const paynow123Chandra = async (req, res) => {
     console.log("here is my card details: ", cart);
 
     // Razorpay verification only when online payment
+
+    // for payment method Online started
+    /*
     if (payment_method === "online") {
 
       if (!razorpay_payment_id || !razorpay_order_id || !razorpay_signature) {
@@ -59,6 +62,8 @@ export const paynow123Chandra = async (req, res) => {
         });
       }
     }
+    */
+    // for payment method Online ended
 
     // ORDER CREATION AFTER SUCCESS
     const order = new AllOrdersData({

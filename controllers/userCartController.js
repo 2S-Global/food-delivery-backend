@@ -437,6 +437,8 @@ export const getUserCart = async (req, res) => {
       });
     }
 
+    console.log("Here is my user cart: ", cart);
+
     // Calculate totals per item & full cart total
     let finalCartItems = [];
     let grandTotal = 0;
@@ -446,7 +448,10 @@ export const getUserCart = async (req, res) => {
 
       finalCartItems.push({
         _id: item._id,
+        item_type: item.item_type,
         subscription_type: item.subscription_type,
+        start_date: item.start_date,
+        end_date: item.end_date,
         weeks: item.weeks,
         meal_count: item.meal_count,
         additional_items: item.additional_items,
