@@ -461,7 +461,7 @@ export const getUserCart = async (req, res) => {
         weeks: item.weeks,
         meal_count: item.meal_count,
         additional_items: item.additional_items,
-        item_total_price: itemTotal,
+        item_total_price: itemTotal.toFixed(2),
       });
 
       grandTotal += itemTotal;
@@ -473,7 +473,7 @@ export const getUserCart = async (req, res) => {
       data: {
         user_id: cart.user_id,
         items: finalCartItems,
-        total_cart_amount: grandTotal,
+        total_cart_amount: grandTotal.toFixed(2),
       },
     });
 
