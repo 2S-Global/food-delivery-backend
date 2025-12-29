@@ -10,8 +10,26 @@ const OrderSchema = new mongoose.Schema(
 
     items: [
       {
+        item_type: {
+          type: String,
+          enum: ["subscription", "additional_item"],
+          required: true,
+        },
         subscription_type: { type: String },      // veg / non-veg etc
         weeks: { type: Number },
+        start_date: {
+          type: Date,
+          required: function () {
+            return this.item_type === "subscription";
+          },
+        },
+
+        end_date: {
+          type: Date,
+          required: function () {
+            return this.item_type === "subscription";
+          },
+        },
         meal_count: { type: Number },
         additional_items: [
           {
@@ -20,6 +38,25 @@ const OrderSchema = new mongoose.Schema(
               ref: "AdditionalItem",
             },
             quantity: { type: Number, default: 1 },
+            addon_start_date: {
+                type: Date,
+                required: true,
+              },
+              addon_end_date: {
+                type: Date,
+                required: true,
+              },
+              addon_schedule_type: {
+                type: String,
+                enum: [
+                  "daily",
+                  "alternate",
+                  "every_3_days",
+                  "weekly",
+                  "monthly",
+                ],
+                required: true,
+              },
           },
         ],
         total_price: { type: Number, required: true },
