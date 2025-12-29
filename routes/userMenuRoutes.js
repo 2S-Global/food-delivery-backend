@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 import { v2 as cloudinary } from 'cloudinary';
 import userAuth from "../middleware/authMiddleware.js";
 import adminMiddleware from "../middleware/adminMiddleware.js";
-import {listUserMenu, getItemDetailsById, addSubscriptionPrice, listMealType} from "../controllers/userMenuController.js";
+import {listUserMenu, getItemDetailsById, addSubscriptionPrice, listMealType, listAllItemCount} from "../controllers/userMenuController.js";
 
 // Initialize dotenv to load environment variables
 dotenv.config();
@@ -31,5 +31,8 @@ userMenuRouter.get("/item-details", getItemDetailsById);
 userMenuRouter.get("/list-meal-type", listMealType);
 // API for Add Subscription Price
 userMenuRouter.post("/add-subscription-price", upload.none(), userAuth, adminMiddleware, addSubscriptionPrice);
+
+// List all count for this api
+userMenuRouter.get("/list-item-count", listAllItemCount);
 
 export default userMenuRouter;

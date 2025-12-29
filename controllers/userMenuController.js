@@ -209,3 +209,40 @@ export const listMealType = async (req, res) => {
     });
   }
 };
+
+// List Count of Items
+export const listAllItemCount = async (req, res) => {
+  try {
+
+    const [
+      totalMenus,
+      totalVegMenus,
+      totalNonVegMenus,
+      totalAdditionalItems,
+    ] = await Promise.all([
+      menuModel.countDocuments({ isDel: false }),
+      menuModel.countDocuments({ isDel: false, menuType: "Veg" }),
+      menuModel.countDocuments({ isDel: false, menuType: "Non-Veg" }),
+      additionalItemModel.countDocuments({ isDel: false }),
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      message: "Total Items fetched successfully!",
+      data: {
+        totalMenus,
+        totalVegMenus,
+        totalNonVegMenus,
+        totalAdditionalItems,
+      },
+    });
+  } catch (error) {
+    console.error("Error in fetch Total Items:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Error fetching Total Items",
+      error: error.message,
+    });
+  }
+};
