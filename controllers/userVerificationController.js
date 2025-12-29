@@ -7,7 +7,7 @@ import UserCart from "../models/userCartModel.js";
 import AllOrdersData from "../models/allOrders.js";
 import Transaction from "../models/transactionModel.js";
 
-export const paynow123Chandra = async (req, res) => {
+export const paynow = async (req, res) => {
   try {
     const userId = req.userId;
 

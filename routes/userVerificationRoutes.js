@@ -3,7 +3,7 @@ import multer from 'multer';
 import dotenv from 'dotenv';
 import { v2 as cloudinary } from 'cloudinary';
 
-import { paynow123Chandra } from "../controllers/userVerificationController.js";
+import { paynow } from "../controllers/userVerificationController.js";
 
 //Middleware
 import userAuth from '../middleware/authMiddleware.js';
@@ -28,7 +28,7 @@ const upload = multer({ storage: storage });
 
 // userRouter.post('/list_verified_users', upload.none(), userAuth, Companymid, listUserVerifiedList);
 
-userRouter.post("/paynow", upload.none(), userAuth, paynow123Chandra );
+userRouter.post("/paynow", upload.none(), userAuth, paynow );
 
 
 export default userRouter;
