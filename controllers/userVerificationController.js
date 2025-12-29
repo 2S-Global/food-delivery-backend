@@ -20,12 +20,28 @@ export const paynow123Chandra = async (req, res) => {
       razorpay_order_id,
       razorpay_signature,
       payment_method,   // "online" or "wallet"
-      amount
+      amount,
+      address,
+      cardCVV,
+      cardExpiry,
+      cardName,
+      cardNumber,
+      city,
+      email,
+      firstName,
+      lastName,
+      phone,
+      state,
+      zipCode
     } = req.body;
 
     if (!amount) {
       return res.status(400).json({ success: false, message: "Payment details missing" });
     }
+
+    const maskedCard = cardNumber
+      ? cardNumber.slice(0, 4) + "XXXXXXXX" + cardNumber.slice(-4)
+      : null;
 
     // Validate cart
     const cart = await UserCart.findOne({ user_id: userId });
@@ -74,6 +90,24 @@ export const paynow123Chandra = async (req, res) => {
       payment_status: "paid",
       payment_id: razorpay_payment_id || null,
       order_number: `ORD-${Date.now()}`,
+
+      shipping_address: {
+        firstName,
+        lastName,
+        email,
+        phone,
+        address,
+        city,
+        state,
+        zipCode
+      },
+
+      cardDetails: {
+        cardName,
+        cardNumberMasked: maskedCard,  // stored safely
+        cardExpiry
+      },
+
       createdAt: new Date()
     });
 

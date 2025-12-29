@@ -31,6 +31,17 @@ const OrderSchema = new mongoose.Schema(
       required: true,
     },
 
+    shipping_address: {
+      firstName: String,
+      lastName: String,
+      email: String,
+      phone: String,
+      address: String,
+      city: String,
+      state: String,
+      zipCode: String,
+    },
+
     payment_method: {
       type: String,
       enum: ["online", "wallet"],
@@ -53,6 +64,13 @@ const OrderSchema = new mongoose.Schema(
       unique: true,
       required: true,
     },
+
+    cardDetails: {
+      cardName: String,
+      cardNumberMasked: String,  // Only masked
+      cardExpiry: String
+    },
+
   },
   { timestamps: true }  // enables createdAt and updatedAt automatically
 );
