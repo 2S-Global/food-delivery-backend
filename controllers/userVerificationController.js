@@ -19,7 +19,7 @@ export const paynow123Chandra = async (req, res) => {
       razorpay_payment_id,
       razorpay_order_id,
       razorpay_signature,
-      // payment_method,   // "online" or "wallet"
+      payment_method,   // "online" or "wallet"
       amount
     } = req.body;
 

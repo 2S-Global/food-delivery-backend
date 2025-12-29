@@ -362,6 +362,9 @@ export const userAddToCart = async (req, res) => {
           });
         }
 
+        console.log("Here is my addonStartDate: ", addonStartDate);
+        console.log("Here is my addonEndDate: ", subscription.end_date);
+
         const deliveryCount = calculateAddonDeliveries(
           addonStartDate,
           subscription.end_date,
@@ -377,6 +380,7 @@ export const userAddToCart = async (req, res) => {
           item_id,
           quantity,
           addon_start_date: addonStartDate,
+          addon_end_date: subscription.end_date,
           addon_schedule_type,
         });
       }
@@ -392,6 +396,8 @@ export const userAddToCart = async (req, res) => {
         total_price: totalAddonPrice,
       });
     }
+
+    cart.total_cart_amount = cart.items.reduce((sum, item) => sum + item.total_price, 0);
 
     await cart.save();
 

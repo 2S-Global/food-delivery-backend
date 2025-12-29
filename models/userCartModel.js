@@ -74,6 +74,10 @@ const userCartSchema = new mongoose.Schema(
                 type: Date,
                 required: true,
               },
+              addon_end_date: {
+                type: Date,
+                required: true,
+              },
               addon_schedule_type: {
                 type: String,
                 enum: [
@@ -99,6 +103,12 @@ const userCartSchema = new mongoose.Schema(
         },
       },
     ],
+
+    total_cart_amount: {
+      type: Number,
+      default: 0,
+    }
+
   },
   { timestamps: true }
 );
