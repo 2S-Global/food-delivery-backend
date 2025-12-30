@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 import { v2 as cloudinary } from 'cloudinary';
 import userAuth from "../middleware/authMiddleware.js";
 import adminMiddleware from "../middleware/adminMiddleware.js";
-import { addBlogDetails, listAllBlogs, editUserBlog, deleteUserBlog, blogDetails } from "../controllers/userBlogController.js";
+import { addBlogDetails, listAllBlogs, editUserBlog, deleteUserBlog, blogDetails, addCmsDetails, getCmsDetailsBySlug, editCmsDetails, deleteCmsDetails } from "../controllers/userBlogController.js";
 
 // Initialize dotenv to load environment variables
 dotenv.config();
@@ -23,15 +23,6 @@ const userBlogRouter = express.Router();
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
-// All List Menu API
-// userMenuRouter.get("/list-menu", listUserMenu);
-// Item details API
-// userMenuRouter.get("/item-details", getItemDetailsById);
-// List Meal Type API
-// userMenuRouter.get("/list-meal-type", listMealType);
-// API for Add Subscription Price
-// userBlogRouter.post("/add-user-blog", upload.none(), userAuth, adminMiddleware, addSubscriptionPrice);
-
 // Add User Blog
 userBlogRouter.post("/add-user-blog", userAuth, adminMiddleware, upload.array("newImages", 10), addBlogDetails);
 
@@ -47,7 +38,16 @@ userBlogRouter.put("/edit-user-blog/:_id", upload.array("newImages", 10), userAu
 // Delete User Blogs
 userBlogRouter.delete("/delete-user-blog", upload.none(), userAuth, deleteUserBlog);
 
-// List all count for this api
-// userMenuRouter.get("/list-item-count", listAllItemCount);
+// Add CMS
+userBlogRouter.post("/add-cms", userAuth, adminMiddleware, upload.single("image"), addCmsDetails);
+
+// List CMS
+userBlogRouter.get("/list-cms", getCmsDetailsBySlug);
+
+// Edit CMS
+userBlogRouter.put("/edit-cms/:_id", upload.single("image"), userAuth, adminMiddleware, editCmsDetails);
+
+// Delete CMS
+userBlogRouter.delete("/delete-cms/:_id", upload.none(), userAuth, adminMiddleware, deleteCmsDetails);
 
 export default userBlogRouter;

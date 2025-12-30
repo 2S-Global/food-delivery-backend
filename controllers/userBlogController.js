@@ -1,4 +1,5 @@
 import blogDetailsModel from "../models/blogDetailsModel.js";
+import cmsDetailsModel from "../models/cmsModel.js";
 import { v2 as cloudinary } from 'cloudinary';
 import mongoose from "mongoose";
 
@@ -276,7 +277,7 @@ export const editUserBlog = async (req, res) => {
 
     const updatedBlog = await blogDetailsModel.findByIdAndUpdate(
       _id,
-      { title, date, description, images: finalImages },
+      { title, date, description, image: finalImages },
       { new: true }
     );
 
@@ -335,6 +336,195 @@ export const deleteUserBlog = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Error deleting User Blog",
+      error: error.message,
+    });
+  }
+};
+
+// Add CMS Controller
+export const addCmsDetails = async (req, res) => {
+  try {
+    const { title, summary, full_content } = req.body;
+
+    if (!title || !summary || !full_content) {
+      return res.status(400).json({
+        success: false,
+        message: "Title, Summary & Full Content are required",
+      });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "Image is required",
+      });
+    }
+
+    // Upload image to Cloudinary
+    const uploadResult = await new Promise((resolve, reject) => {
+      cloudinary.uploader.upload_stream({ folder: "cmsImages" }, (err, result) => {
+        if (err) reject(err);
+        else resolve(result);
+      }).end(req.file.buffer);
+    });
+
+    // Save data
+    const newCMS = await cmsDetailsModel.create({
+      title,
+      summary,
+      full_content,
+      image: uploadResult.secure_url,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "CMS Blog Added Successfully",
+      data: newCMS,
+    });
+
+  } catch (err) {
+    console.error("CMS Add Error:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+      error: err.message,
+    });
+  }
+};
+
+// List CMS Details by Slug Controller
+export const getCmsDetailsBySlug = async (req, res) => {
+  try {
+    const { slug } = req.query;
+
+    if (!slug) {
+      return res.status(400).json({
+        success: false,
+        message: "Slug is required",
+      });
+    }
+
+    const cmsData = await cmsDetailsModel.findOne({
+      slug,
+      isDel: false
+    });
+
+    if (!cmsData) {
+      return res.status(404).json({
+        success: false,
+        message: "CMS content not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "CMS details fetched successfully",
+      data: cmsData,
+    });
+
+  } catch (err) {
+    console.error("CMS Fetch Error:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+      error: err.message,
+    });
+  }
+};
+
+// Edit CMS Controller
+export const editCmsDetails = async (req, res) => {
+  try {
+    const { _id } = req.params;
+    const { title, summary, full_content, oldImage } = req.body;
+
+    if (!title || !summary || !full_content) {
+      return res.status(400).json({
+        success: false,
+        message: "Title, Summary & Full Content are required",
+      });
+    }
+
+    let finalImage = oldImage || null;
+
+    // If new image uploaded, replace image
+    if (req.file) {
+      const uploadResult = await new Promise((resolve, reject) => {
+        cloudinary.uploader.upload_stream(
+          { folder: "cmsImages" },
+          (err, result) => {
+            if (err) reject(err);
+            else resolve(result);
+          }
+        ).end(req.file.buffer);
+      });
+
+      finalImage = uploadResult.secure_url;
+    }
+
+    const updatedCMS = await cmsDetailsModel.findByIdAndUpdate(
+      _id,
+      {
+        title,
+        summary,
+        full_content,
+        image: finalImage,
+      },
+      { new: true }
+    );
+
+    if (!updatedCMS) {
+      return res.status(404).json({
+        success: false,
+        message: "CMS Blog not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "CMS Blog Updated Successfully",
+      data: updatedCMS,
+    });
+
+  } catch (err) {
+    console.error("CMS Update Error:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+      error: err.message,
+    });
+  }
+};
+
+// Delete CMS Controller
+export const deleteCmsDetails = async (req, res) => {
+  try {
+    const { _id } = req.params;
+
+    const deletedCMS = await cmsDetailsModel.findByIdAndUpdate(
+      _id,
+      { isDel: true },            // soft delete flag
+      { new: true }
+    );
+
+    if (!deletedCMS) {
+      return res.status(404).json({
+        success: false,
+        message: "CMS Blog not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "CMS Blog Soft Deleted Successfully",
+      data: deletedCMS,
+    });
+
+  } catch (error) {
+    console.error("Delete CMS Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
       error: error.message,
     });
   }
