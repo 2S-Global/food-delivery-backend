@@ -36,7 +36,7 @@ const upload = multer({ storage: storage });
 userBlogRouter.post("/add-user-blog", userAuth, adminMiddleware, upload.array("newImages", 10), addBlogDetails);
 
 // List All Blogs
-userBlogRouter.get("/list-user-blogs", userAuth, listAllBlogs);
+userBlogRouter.get("/list-user-blogs", listAllBlogs);
 
 // Edit User Blog
 userBlogRouter.put("/edit-user-blog/:_id", upload.array("newImages", 10), userAuth, adminMiddleware, editUserBlog);
