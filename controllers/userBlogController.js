@@ -169,16 +169,18 @@ export const blogDetails = async (req, res) => {
 };
 
 //Edit User Blog Controller
-export const editUserBlog = async (req, res) => {
+export const editUserBlog123 = async (req, res) => {
   try {
-
     const { _id } = req.params;
 
     const {
       title,
+      date,
       description,
       oldImages = []   // whatever images user kept
     } = req.body;
+
+    console.log("Here I am receiving all req.body :", req.body);
 
     if (!title || !description) {
       return res.status(400).json({
@@ -209,11 +211,11 @@ export const editUserBlog = async (req, res) => {
     const finalImages = [...oldImages, ...uploadedNewImages];
 
     // Update DB
-    const updatedItem = await AdditionalItem.findByIdAndUpdate(
+    const updatedItem = await blogDetailsModel.findByIdAndUpdate(
       _id,
       {
-        itemName,
-        itemPrice,
+        title,
+        date,
         description,
         images: finalImages,
       },
@@ -222,18 +224,77 @@ export const editUserBlog = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: "Additional Item updated successfully",
+      message: "Blog Details updated successfully",
       data: updatedItem,
     });
 
   } catch (error) {
-    console.log("Edit Additional Item Error:", error);
+    console.log("Edit Blog Details Error:", error);
     return res.status(500).json({
       success: false,
       message: "Internal Server Error",
     });
   }
 };
+
+export const editUserBlog = async (req, res) => {
+  try {
+    const { _id } = req.params;
+
+    let { title, date, description, oldImages } = req.body;
+
+    if (!title || !description) {
+      return res.status(400).json({
+        success: false,
+        message: "Title and Description are required",
+      });
+    }
+
+    // Parse old images coming as JSON string
+    try {
+      oldImages = JSON.parse(oldImages);
+    } catch {
+      oldImages = Array.isArray(oldImages) ? oldImages : [oldImages];
+    }
+    if (!Array.isArray(oldImages)) oldImages = [];
+
+    // Upload new images
+    const uploadedNewImages = [];
+    if (req.files && req.files.length > 0) {
+      for (const file of req.files) {
+        const result = await new Promise((resolve, reject) => {
+          cloudinary.uploader.upload_stream({ folder: "blogImages" }, (err, uploadResult) => {
+            if (err) reject(err);
+            else resolve(uploadResult);
+          }).end(file.buffer);
+        });
+        uploadedNewImages.push(result.secure_url);
+      }
+    }
+
+    const finalImages = [...oldImages, ...uploadedNewImages];
+
+    const updatedBlog = await blogDetailsModel.findByIdAndUpdate(
+      _id,
+      { title, date, description, images: finalImages },
+      { new: true }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Blog updated successfully",
+      data: updatedBlog,
+    });
+
+  } catch (error) {
+    console.log("Edit Blog Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+    });
+  }
+};
+
 
 // Delete User Blog Controller
 export const deleteUserBlog = async (req, res) => {
