@@ -42,6 +42,7 @@ import paymentRouter from "./routes/paymentRoutes.js";
 import userVerificationRoutes from "./routes/userVerificationRoutes.js";
 import userOrderRouter from "./routes/userOrderRoutes.js";
 import surveyRoutes from "./routes/survey.routes.js";
+import weeklymenuRoutes from "./routes/weeklymenuRoutes.js";
 // Testing Routes
 app.get("/", (req, res) => {
   res.send("Welcome to the back end of the Food Delivery App ");
@@ -58,6 +59,7 @@ app.use("/api/payment", paymentRouter);
 app.use("/api/verify", userVerificationRoutes);
 app.use("/api/user-order", userOrderRouter);
 app.use("/api/survey", surveyRoutes);
+app.use("/api/weeklymenu", weeklymenuRoutes);
 const PORT = process.env.PORT || 8080;
 
 app.listen(PORT, () => {
