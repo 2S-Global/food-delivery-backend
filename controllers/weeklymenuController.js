@@ -1,4 +1,4 @@
-import WeeklyMenu from "../models/WeeklyMenu";
+import WeeklyMenu from "../models/WeeklyMenu.js";
 import mongoose from "mongoose";
 
 /* =========================
