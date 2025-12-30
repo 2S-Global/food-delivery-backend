@@ -101,7 +101,7 @@ export const listAllBlogs = async (req, res) => {
     // Fetch all users with role 1 and not deleted
     const allBlogs = await blogDetailsModel.find({
       isDel: false
-    }).select("title description image date");
+    }).select("title description image date slug");
 
     // If no data found
     if (!allBlogs.length) {
