@@ -1,4 +1,5 @@
-import Survey from "../models/WeeklyMenu.js";
+import WeeklyMenu from "../models/WeeklyMenu";
+import mongoose from "mongoose";
 
 /* =========================
    CREATE / UPDATE WEEKLY MENU
