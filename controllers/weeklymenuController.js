@@ -82,11 +82,27 @@ export const getWeeklyMenuByDate = async (req, res) => {
       });
     }
 
+    // Convert YYYY-MM-DD to start of day (LOCAL)
     const formattedDate = new Date(date);
     formattedDate.setHours(0, 0, 0, 0);
 
     const menu = await WeeklyMenu.findOne({ date: formattedDate })
-      .populate("vegLunch vegDinner nonVegLunch nonVegDinner");
+      .populate({
+        path: "vegLunch",
+        match: { isDel: false },
+      })
+      .populate({
+        path: "vegDinner",
+        match: { isDel: false },
+      })
+      .populate({
+        path: "nonVegLunch",
+        match: { isDel: false },
+      })
+      .populate({
+        path: "nonVegDinner",
+        match: { isDel: false },
+      });
 
     if (!menu) {
       return res.status(200).json({
@@ -107,6 +123,7 @@ export const getWeeklyMenuByDate = async (req, res) => {
     });
   }
 };
+
 
 /* =========================
    GET ALL WEEKLY MENUS
