@@ -15,6 +15,8 @@ export const addBlogDetails = async (req, res) => {
   try {
     const { title, description } = req.body;
 
+    console.log("Here I am getting all data: ", req.body);
+
     console.log("Body:", req.body);
     console.log("Files:", req.files);
     console.log("Files length:", req.files?.length);
@@ -51,7 +53,7 @@ export const addBlogDetails = async (req, res) => {
         });
       }
 
-      console.log("Uploading file:", file.originalname);
+    //   console.log("Uploading file:", file.originalname);
 
       const uploadResult = await new Promise((resolve, reject) => {
         const stream = cloudinary.uploader.upload_stream(
@@ -122,6 +124,45 @@ export const listAllBlogs = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Error fetching blogs",
+      error: error.message
+    });
+  }
+};
+
+// List Blog Details Controller
+export const blogDetails = async (req, res) => {
+  try {
+    const { _id } = req.query; // expecting blog id from query
+
+    if (!_id) {
+      return res.status(400).json({
+        success: false,
+        message: "Blog _id is required"
+      });
+    }
+
+    const blog = await blogDetailsModel.findOne({
+      _id,
+      isDel: false
+    }).select("title description image date slug");
+
+    if (!blog) {
+      return res.status(404).json({
+        success: false,
+        message: "Blog not found"
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Blog details fetched successfully",
+      data: blog
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Error fetching blog details",
       error: error.message
     });
   }

@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 import { v2 as cloudinary } from 'cloudinary';
 import userAuth from "../middleware/authMiddleware.js";
 import adminMiddleware from "../middleware/adminMiddleware.js";
-import { addBlogDetails, listAllBlogs, editUserBlog, deleteUserBlog } from "../controllers/userBlogController.js"
+import { addBlogDetails, listAllBlogs, editUserBlog, deleteUserBlog, blogDetails } from "../controllers/userBlogController.js";
 
 // Initialize dotenv to load environment variables
 dotenv.config();
@@ -37,6 +37,9 @@ userBlogRouter.post("/add-user-blog", userAuth, adminMiddleware, upload.array("n
 
 // List All Blogs
 userBlogRouter.get("/list-user-blogs", listAllBlogs);
+
+// List Blogs Details
+userBlogRouter.get("/blog-details", blogDetails);
 
 // Edit User Blog
 userBlogRouter.put("/edit-user-blog/:_id", upload.array("newImages", 10), userAuth, adminMiddleware, editUserBlog);
