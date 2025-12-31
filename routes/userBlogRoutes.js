@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 import { v2 as cloudinary } from 'cloudinary';
 import userAuth from "../middleware/authMiddleware.js";
 import adminMiddleware from "../middleware/adminMiddleware.js";
-import { addBlogDetails, listAllBlogs, editUserBlog, deleteUserBlog, blogDetails, addCmsDetails, getCmsDetailsBySlug, editCmsDetails, deleteCmsDetails } from "../controllers/userBlogController.js";
+import { addBlogDetails, listAllBlogs, editUserBlog, deleteUserBlog, blogDetails, addCmsDetails, getCmsDetailsBySlug, editCmsDetails, deleteCmsDetails, listAllCMS } from "../controllers/userBlogController.js";
 
 // Initialize dotenv to load environment variables
 dotenv.config();
@@ -39,13 +39,16 @@ userBlogRouter.put("/edit-user-blog/:_id", upload.array("newImages", 10), userAu
 userBlogRouter.delete("/delete-user-blog", upload.none(), userAuth, deleteUserBlog);
 
 // Add CMS
-userBlogRouter.post("/add-cms", userAuth, adminMiddleware, upload.single("image"), addCmsDetails);
+userBlogRouter.post("/add-cms", userAuth, adminMiddleware, upload.single("newImages"), addCmsDetails);
+
+// List CMS Details by Slug
+userBlogRouter.get("/list-cms-details", getCmsDetailsBySlug);
 
 // List CMS
-userBlogRouter.get("/list-cms", getCmsDetailsBySlug);
+userBlogRouter.get("/list-all-cms", listAllCMS);
 
 // Edit CMS
-userBlogRouter.put("/edit-cms/:_id", upload.single("image"), userAuth, adminMiddleware, editCmsDetails);
+userBlogRouter.put("/edit-cms/:_id", upload.single("newImages"), userAuth, adminMiddleware, editCmsDetails);
 
 // Delete CMS
 userBlogRouter.delete("/delete-cms/:_id", upload.none(), userAuth, adminMiddleware, deleteCmsDetails);

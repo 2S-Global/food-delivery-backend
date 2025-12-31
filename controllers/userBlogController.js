@@ -54,7 +54,7 @@ export const addBlogDetails = async (req, res) => {
         });
       }
 
-    //   console.log("Uploading file:", file.originalname);
+      //   console.log("Uploading file:", file.originalname);
 
       const uploadResult = await new Promise((resolve, reject) => {
         const stream = cloudinary.uploader.upload_stream(
@@ -344,12 +344,14 @@ export const deleteUserBlog = async (req, res) => {
 // Add CMS Controller
 export const addCmsDetails = async (req, res) => {
   try {
-    const { title, summary, full_content } = req.body;
+    const { title, summary, description } = req.body;
 
-    if (!title || !summary || !full_content) {
+    console.log("Here I am getting all data: ", req.body);
+
+    if (!title || !summary || !description) {
       return res.status(400).json({
         success: false,
-        message: "Title, Summary & Full Content are required",
+        message: "Title, Summary & Description are required",
       });
     }
 
@@ -372,7 +374,7 @@ export const addCmsDetails = async (req, res) => {
     const newCMS = await cmsDetailsModel.create({
       title,
       summary,
-      full_content,
+      full_content: description,
       image: uploadResult.secure_url,
     });
 
@@ -436,12 +438,15 @@ export const getCmsDetailsBySlug = async (req, res) => {
 export const editCmsDetails = async (req, res) => {
   try {
     const { _id } = req.params;
-    const { title, summary, full_content, oldImage } = req.body;
+    const { title, summary, description, oldImage } = req.body;
 
-    if (!title || !summary || !full_content) {
+    console.log("Editing CMS ID:", _id);
+    console.log("Here I am receiving all req.body for edit :", req.body);
+
+    if (!title || !summary || !description) {
       return res.status(400).json({
         success: false,
-        message: "Title, Summary & Full Content are required",
+        message: "Title, Summary & Description are required",
       });
     }
 
@@ -467,7 +472,7 @@ export const editCmsDetails = async (req, res) => {
       {
         title,
         summary,
-        full_content,
+        full_content: description,
         image: finalImage,
       },
       { new: true }
@@ -526,6 +531,48 @@ export const deleteCmsDetails = async (req, res) => {
       success: false,
       message: "Internal Server Error",
       error: error.message,
+    });
+  }
+};
+
+// Lis all CMS only for Admin Panel
+export const listAllCMS = async (req, res) => {
+  try {
+    // Fetch all users with role 1 and not deleted
+    const allCms = await cmsDetailsModel.find({
+      isDel: false
+    }).select("title image summary slug full_content");
+
+    // If no data found
+    if (!allCms.length) {
+      return res.status(404).json({
+        success: false,
+        message: "No CMS found"
+      });
+    }
+
+    // Map all CMS records and format output
+    const cmsData = allCms.map(cms => ({
+      _id: cms._id,
+      title: cms.title,
+      image: cms.image,
+      summary: cms.summary,
+      slug: cms.slug,
+      description: cms.full_content // renamed key
+    }));
+
+    // Success response
+    return res.status(200).json({
+      success: true,
+      message: "All CMS retrieved successfully",
+      data:cmsData
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Error fetching cms",
+      error: error.message
     });
   }
 };
