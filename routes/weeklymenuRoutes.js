@@ -3,6 +3,7 @@ import {
   submitWeeklyMenu,
   getWeeklyMenuByDate,
   getAllWeeklyMenus,
+  getMenuByDateAndUser
 } from "../controllers/weeklymenuController.js";
 
 const router = express.Router();
@@ -10,4 +11,5 @@ const router = express.Router();
 router.post("/weekly-menu", submitWeeklyMenu);
 router.get("/weekly-menu", getWeeklyMenuByDate); // ?date=YYYY-MM-DD
 router.get("/weekly-menu/all", getAllWeeklyMenus);       // Get single survey by ID
+router.get("/get-menu-by-date", getMenuByDateAndUser); // ?date=YYYY-MM-DD
 export default router;
