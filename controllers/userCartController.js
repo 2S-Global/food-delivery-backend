@@ -338,7 +338,7 @@ export const userAddToCart = async (req, res) => {
         total_meals: totalMeals,
         // weeks,
         // meal_count: mealCount,
-        per_meal_price: perMealPrice.toFixed(2),
+        // per_meal_price: perMealPrice.toFixed(2),
         total_price: totalPrice,
       });
     }
