@@ -62,9 +62,9 @@ app.use("/api/survey", surveyRoutes);
 app.use("/api/weeklymenu", weeklymenuRoutes);
 const PORT = process.env.PORT || 8080;
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+// app.listen(PORT, () => {
+//   console.log(`Server running on port ${PORT}`);
 
-});
+// });
 
 export default app;
