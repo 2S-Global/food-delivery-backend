@@ -134,16 +134,14 @@ export const getAllWeeklyMenus = async (req, res) => {
 
 
 /* =========================
-   GET MENU BY DATE
+   GET MENU BY DATE (USER)
 ========================= */
 export const getMenuByDateAndUser = async (req, res) => {
   try {
-
-    const userId = req.userId;
+    const userId = req.userId; // from JWT middleware
     const { date } = req.query;
 
     console.log("User ID:", userId);
-
     console.log("Date:", date);
 
     if (!userId || !date) {
@@ -153,43 +151,67 @@ export const getMenuByDateAndUser = async (req, res) => {
       });
     }
 
-    // Normalize date (00:00:00)
+    /* =========================
+       NORMALIZE DATE (UTC SAFE)
+    ========================= */
     const selectedDate = new Date(date);
-    selectedDate.setHours(0, 0, 0, 0);
+    selectedDate.setUTCHours(0, 0, 0, 0);
+
+    const endOfDay = new Date(date);
+    endOfDay.setUTCHours(23, 59, 59, 999);
 
     /* =========================
-       1. FIND USER ORDER
+       1. FIND ALL ACTIVE ORDERS
     ========================= */
-    const order = await allOrdersData.findOne({
+    const orders = await allOrdersData.find({
       user_id: userId,
+      payment_status: "paid",
       items: {
         $elemMatch: {
-          start_date: { $lte: selectedDate },
+          item_type: "subscription",
+          start_date: { $lte: endOfDay },
           end_date: { $gte: selectedDate },
         },
       },
-      payment_status: "paid",
     });
 
-    if (!order) {
+    console.log('ALL ORDERS ==> ',orders)
+
+    if (!orders.length) {
+
+      console.log('REACHED ');
       return res.status(200).json({
         success: true,
         hasOrder: false,
-        message: "No active subscription for this date",
+        message: "No active subscription for this date2",
         data: null,
       });
     }
 
     /* =========================
-       2. GET SUBSCRIPTION TYPE
+       2. EXTRACT ACTIVE SUBSCRIPTIONS
     ========================= */
-    const activeItem = order.items.find(
-      (item) =>
-        selectedDate >= new Date(item.start_date) &&
-        selectedDate <= new Date(item.end_date)
-    );
+    let activeSubscriptions = [];
 
-    if (!activeItem) {
+    orders.forEach((order) => {
+      order.items.forEach((item) => {
+        if (
+          item.item_type === "subscription" &&
+          selectedDate >= new Date(item.start_date) &&
+          selectedDate <= new Date(item.end_date)
+        ) {
+          activeSubscriptions.push({
+            orderNumber: order.order_number,
+            subscription_type: item.subscription_type, // veg / non-veg
+          });
+        }
+      });
+    });
+
+    console.log('ALL SUBSCRIPTIONS ==> ',activeSubscriptions)
+
+
+    if (!activeSubscriptions.length) {
       return res.status(200).json({
         success: true,
         hasOrder: false,
@@ -197,36 +219,56 @@ export const getMenuByDateAndUser = async (req, res) => {
       });
     }
 
-    const subscriptionType = activeItem.subscription_type; // veg / nonveg
+console.log('Selected Date ==> ',selectedDate)
 
     /* =========================
        3. FETCH WEEKLY MENU
     ========================= */
     const weeklyMenu = await WeeklyMenu.findOne({ date: selectedDate })
-      .populate(
-        subscriptionType === "veg"
-          ? "vegLunch vegDinner"
-          : "nonVegLunch nonVegDinner"
-      );
+      .populate("vegLunch vegDinner nonVegLunch nonVegDinner");
 
     if (!weeklyMenu) {
       return res.status(200).json({
         success: true,
         hasOrder: true,
-        data: null,
         message: "Menu not published for this date",
+        data: null,
       });
     }
 
+
+console.log('Weekly Menu ==> ',weeklyMenu)
+
+
     /* =========================
-       4. RESPONSE
+       4. FORMAT RESPONSE
+    ========================= */
+    const menus = activeSubscriptions.map((sub) => {
+      if (sub.subscription_type === "veg") {
+        return {
+          orderNumber: sub.orderNumber,
+          type: "veg",
+          lunch: weeklyMenu.vegLunch,
+          dinner: weeklyMenu.vegDinner,
+        };
+      }
+
+      return {
+        orderNumber: sub.orderNumber,
+        type: "non-veg",
+        lunch: weeklyMenu.nonVegLunch,
+        dinner: weeklyMenu.nonVegDinner,
+      };
+    });
+
+    /* =========================
+       FINAL RESPONSE
     ========================= */
     res.status(200).json({
       success: true,
       hasOrder: true,
-      subscriptionType,
-      orderNumber: order.order_number,
-      menu: weeklyMenu,
+      date: selectedDate,
+      menus,
     });
   } catch (error) {
     console.error("Get menu by date & user error:", error);
