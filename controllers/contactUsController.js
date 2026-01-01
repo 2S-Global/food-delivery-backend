@@ -42,7 +42,8 @@ export const submitContactUs = async (req, res) => {
     // ===============================
     // Admin Notification Email
     // ===============================
-    const ADMIN_EMAIL = "chandra@2sglobal.us";
+    // const ADMIN_EMAIL = "chandra@2sglobal.us";
+    const ADMIN_EMAIL = "souvik.2sglobal@gmail.com";
     const adminMailOptions = {
       from: `"Food Go Support" <${process.env.EMAIL_USER}>`,
       to: ADMIN_EMAIL,
@@ -229,3 +230,4 @@ export const submitContactUs = async (req, res) => {
     });
   }
 };
+
