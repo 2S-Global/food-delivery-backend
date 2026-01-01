@@ -42,9 +42,10 @@ export const submitContactUs = async (req, res) => {
     // ===============================
     // Admin Notification Email
     // ===============================
+    const ADMIN_EMAIL = "chandra@2sglobal.us";
     const adminMailOptions = {
       from: `"Food Go Support" <${process.env.EMAIL_USER}>`,
-      to: process.env.ADMIN_EMAIL,
+      to: ADMIN_EMAIL,
       subject: "📩 New Contact Us Message – Food Go",
       html: `
   <!DOCTYPE html>
