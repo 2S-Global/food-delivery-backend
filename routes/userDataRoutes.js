@@ -65,5 +65,5 @@ userDataRouter.post("/add-contact-details", userAuth, adminMiddleware, upload.si
 userDataRouter.get("/list-contact-details", getContactDetails);
 
 // Edit Contact Details
-userDataRouter.put("/edit-contact-details/:_id", userAuth, adminMiddleware, upload.single("newImages"), updateContactDetails);
+userDataRouter.put("/edit-contact-details/:_id", userAuth, adminMiddleware, upload.single("logo"), updateContactDetails);
 export default userDataRouter;
