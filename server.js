@@ -43,6 +43,7 @@ import userVerificationRoutes from "./routes/userVerificationRoutes.js";
 import userOrderRouter from "./routes/userOrderRoutes.js";
 import surveyRoutes from "./routes/survey.routes.js";
 import weeklymenuRoutes from "./routes/weeklymenuRoutes.js";
+import contactUsRoutes from "./routes/contactUsRoutes.js";
 // Testing Routes
 app.get("/", (req, res) => {
   res.send("Welcome to the back end of the Food Delivery App ");
@@ -60,6 +61,7 @@ app.use("/api/verify", userVerificationRoutes);
 app.use("/api/user-order", userOrderRouter);
 app.use("/api/survey", surveyRoutes);
 app.use("/api/weeklymenu", weeklymenuRoutes);
+app.use("/api/contact-us", contactUsRoutes);
 const PORT = process.env.PORT || 8080;
 
 // app.listen(PORT, () => {
@@ -68,3 +70,4 @@ const PORT = process.env.PORT || 8080;
 // });
 
 export default app;
+
