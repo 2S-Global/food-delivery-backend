@@ -42,8 +42,7 @@ export const submitContactUs = async (req, res) => {
     // ===============================
     // Admin Notification Email
     // ===============================
-    // const ADMIN_EMAIL = "chandra@2sglobal.us";
-    const ADMIN_EMAIL = "souvik.2sglobal@gmail.com";
+    const ADMIN_EMAIL = "souvik.2sglobal@gmail.com"
     const adminMailOptions = {
       from: `"Food Go Support" <${process.env.EMAIL_USER}>`,
       to: ADMIN_EMAIL,
@@ -231,3 +230,56 @@ export const submitContactUs = async (req, res) => {
   }
 };
 
+// ===============================
+// Get All Messages (Admin)
+// ===============================
+export const getAllContactUs = async (req, res) => {
+  try {
+    const messages = await ContactUs.find().sort({ createdAt: -1 });
+
+    return res.status(200).json({
+      success: true,
+      count: messages.length,
+      data: messages,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+// ===============================
+// Update Message Status (Admin)
+// ===============================
+export const updateContactStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    const message = await ContactUs.findByIdAndUpdate(
+      id,
+      { status },
+      { new: true }
+    );
+
+    if (!message) {
+      return res.status(404).json({
+        success: false,
+        message: "Message not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Status updated successfully",
+      data: message,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
