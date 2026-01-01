@@ -450,7 +450,16 @@ export const editCmsDetails = async (req, res) => {
       });
     }
 
-    let finalImage = oldImage || null;
+    // STEP 1: Get existing CMS to fallback to old image if needed
+    const existingCMS = await cmsDetailsModel.findById(_id);
+    if (!existingCMS) {
+      return res.status(404).json({
+        success: false,
+        message: "CMS Blog not found",
+      });
+    }
+
+    let finalImage = existingCMS.image;
 
     // If new image uploaded, replace image
     if (req.file) {
@@ -465,6 +474,8 @@ export const editCmsDetails = async (req, res) => {
       });
 
       finalImage = uploadResult.secure_url;
+    } else if (oldImage) {
+      finalImage = oldImage;
     }
 
     const updatedCMS = await cmsDetailsModel.findByIdAndUpdate(
@@ -477,13 +488,6 @@ export const editCmsDetails = async (req, res) => {
       },
       { new: true }
     );
-
-    if (!updatedCMS) {
-      return res.status(404).json({
-        success: false,
-        message: "CMS Blog not found",
-      });
-    }
 
     return res.status(200).json({
       success: true,
@@ -521,7 +525,7 @@ export const deleteCmsDetails = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: "CMS Blog Soft Deleted Successfully",
+      message: "CMS Deleted Successfully",
       data: deletedCMS,
     });
 
@@ -565,7 +569,7 @@ export const listAllCMS = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "All CMS retrieved successfully",
-      data:cmsData
+      data: cmsData
     });
 
   } catch (error) {

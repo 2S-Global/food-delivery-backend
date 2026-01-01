@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 import { v2 as cloudinary } from 'cloudinary';
 import userAuth from "../middleware/authMiddleware.js";
 import adminMiddleware from "../middleware/adminMiddleware.js";
-import { toggleStatus, deleteCustomer, listDeliveryBoys, addMenu, listAllMenu, editMenu, deleteMenu, addAdditionalItem, listAdditionalItems, editAdditionalItem, deleteAdditionalItem, getUserDetails, updateUserDetails, forgotPassword } from "../controllers/userDataController.js";
+import { toggleStatus, deleteCustomer, listDeliveryBoys, addMenu, listAllMenu, editMenu, deleteMenu, addAdditionalItem, listAdditionalItems, editAdditionalItem, deleteAdditionalItem, getUserDetails, updateUserDetails, forgotPassword, addContactDetails, getContactDetails, updateContactDetails } from "../controllers/userDataController.js";
 
 // Initialize dotenv to load environment variables
 dotenv.config();
@@ -58,5 +58,12 @@ userDataRouter.post("/update-user-details", upload.single("profileImage"), userA
 // Forgot Password API
 userDataRouter.post("/forgot-password", upload.none(), userAuth, forgotPassword);
 
+// Add Contact Details
+userDataRouter.post("/add-contact-details", userAuth, adminMiddleware, upload.single("newImages"), addContactDetails);
 
+// List Contact Details
+userDataRouter.get("/list-contact-details", getContactDetails);
+
+// Edit Contact Details
+userDataRouter.put("/edit-contact-details/:_id", userAuth, adminMiddleware, upload.single("newImages"), updateContactDetails);
 export default userDataRouter;

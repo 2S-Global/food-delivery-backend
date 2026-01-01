@@ -1,6 +1,7 @@
 import User from "../models/userModel.js";
 import Menu from "../models/menuModel.js";
 import AdditionalItem from "../models/additionalItemModel.js";
+import ContactDetail from "../models/contactDetailsModel.js";
 import { v2 as cloudinary } from 'cloudinary';
 import bcrypt from "bcrypt";
 import nodemailer from "nodemailer";
@@ -991,6 +992,160 @@ export const forgotPassword = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Server error",
+    });
+  }
+};
+
+// Add Contact Details
+export const addContactDetails = async (req, res) => {
+  try {
+    console.log("Conatct Details API Running Successfully ! ");
+    const { email, phone_number, address, short_description, facebook_link, twitter_link } = req.body;
+    console.log("Conatct Details API Running Successfully and here is my all data ! ", req.body);
+
+    if (!email || !phone_number || !address) {
+      return res.status(400).json({ success: false, message: "Email, phone number & address are required" });
+    }
+
+    const existing = await ContactDetail.findOne({ email });
+    if (existing) {
+      return res.status(404).json({ success: false, message: "Email already exists" });
+    }
+
+    let logoUrl = null;
+
+    if (req.file) {
+      const uploadResult = await new Promise((resolve, reject) => {
+        cloudinary.uploader.upload_stream(
+          { folder: "userLogos" },
+          (err, result) => err ? reject(err) : resolve(result)
+        ).end(req.file.buffer);
+      });
+
+      logoUrl = uploadResult.secure_url;
+    }
+
+    // Create New Contact Record
+    const contact = await ContactDetail.create({
+      email,
+      phone_number,
+      address,
+      logo: logoUrl,
+      short_description: short_description || "",
+      social_links: {
+        facebook: facebook_link || "",
+        twitter: twitter_link || ""
+      }
+    });
+
+    res.status(201).json({
+      success: true,
+      message: "Contact details added successfully",
+      data: contact
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message
+    });
+  }
+};
+
+//List Contact Details
+export const getContactDetails = async (req, res) => {
+  try {
+    const contacts = await ContactDetail.find({ isDel: false })
+      .select("email phone_number address logo short_description social_links createdAt updatedAt");
+
+    if (!contacts.length) {
+      return res.status(404).json({
+        success: false,
+        message: "No contact records found"
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Contact details fetched successfully",
+      data: contacts
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message
+    });
+  }
+};
+
+// Edit Contact Details
+export const updateContactDetails = async (req, res) => {
+  try {
+    const { _id } = req.params;   // ID will come from URL
+    const { email, phone_number, address, short_description, facebook_link, twitter_link, oldLogo } = req.body;
+
+    console.log("Update Contact ID:", _id);
+    console.log("Received Body:", req.body);
+
+    // Check if record exists
+    const existing = await ContactDetail.findById(_id);
+    if (!existing) {
+      return res.status(404).json({
+        success: false,
+        message: "Contact record not found"
+      });
+    }
+
+    let logoUrl = existing.logo;   // default keep old logo
+
+    // If new logo uploaded -> upload to Cloudinary and replace
+    if (req.file) {
+      const uploadResult = await new Promise((resolve, reject) => {
+        cloudinary.uploader.upload_stream(
+          { folder: "userLogos" },
+          (err, result) => err ? reject(err) : resolve(result)
+        ).end(req.file.buffer);
+      });
+
+      logoUrl = uploadResult.secure_url;
+    } 
+    // else if oldLogo passed -> keep same
+    else if (oldLogo) {
+      logoUrl = oldLogo;
+    }
+
+    // Update record
+    const updated = await ContactDetail.findByIdAndUpdate(
+      _id,
+      {
+        email,
+        phone_number,
+        address,
+        logo: logoUrl,
+        short_description,
+        social_links: {
+          facebook: facebook_link || "",
+          twitter: twitter_link || ""
+        }
+      },
+      { new: true }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Contact details updated successfully",
+      data: updated
+    });
+
+  } catch (error) {
+    console.error("Update Contact Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message
     });
   }
 };
