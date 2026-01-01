@@ -264,11 +264,30 @@ export const userAddToCart = async (req, res) => {
         });
       }
 
-      const diffDays = Math.ceil(
-        (endDate - startDate) / (1000 * 60 * 60 * 24)
-      );
-      const weeks = Math.ceil(diffDays / 7);
-      const mealCount = weeks * 13;
+      // Addition code starts from here
+
+      // ======================================================
+      // Step 1: Calculate meals based on days and Sundays
+      // ======================================================
+      let totalMeals = 0;
+      let current = new Date(startDate);
+
+      while (current <= endDate) {
+        let day = current.getDay();  // Sunday = 0
+
+        if (day === 0) totalMeals += 1;     // Sunday → 1 meal
+        else totalMeals += 2;               // Other days → 2 meals
+
+        current.setDate(current.getDate() + 1);
+      }
+
+
+      // ======================================================
+      // Step 2: Pricing Logic
+      // Weekly price (70) for 13 meals
+      // Per meal price = 70/13
+      // Total price = totalMeals * perMealPrice
+      // ======================================================
 
       const priceDoc = await SubscriptionPrice.findOne();
       if (!priceDoc) {
@@ -278,12 +297,33 @@ export const userAddToCart = async (req, res) => {
         });
       }
 
-      const perWeekPrice =
+      const weeklyPrice =
         subscription_type === "veg"
           ? priceDoc.vegPrice
           : priceDoc.nonVegPrice;
 
-      const totalPrice = perWeekPrice * weeks;
+      // const weeklyPrice = 70;
+      const mealsPerWeek = 13;
+
+      const perMealPrice = weeklyPrice / mealsPerWeek;
+      const totalPrice = Number((totalMeals * perMealPrice).toFixed(2)); // round price
+
+      // ======================================================
+
+
+      // Additional code ends here
+
+      /*
+
+      const diffDays = Math.ceil(
+        (endDate - startDate) / (1000 * 60 * 60 * 24)
+      );
+      const weeks = Math.ceil(diffDays / 7);
+      const mealCount = weeks * 13;
+
+      */
+
+      // const totalPrice = perWeekPrice * weeks;
 
       // Remove existing subscription
       // cart.items = cart.items.filter(
@@ -295,8 +335,10 @@ export const userAddToCart = async (req, res) => {
         subscription_type,
         start_date: startDate,
         end_date: endDate,
-        weeks,
-        meal_count: mealCount,
+        total_meals: totalMeals,
+        // weeks,
+        // meal_count: mealCount,
+        per_meal_price: perMealPrice.toFixed(2),
         total_price: totalPrice,
       });
     }
