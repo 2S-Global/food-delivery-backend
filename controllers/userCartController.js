@@ -661,3 +661,41 @@ export const checkoutPay = async (req, res) => {
 
   }
 };
+
+export const getUserCartCount = async (req, res) => {
+  try {
+    const userId = req.userId;
+
+    if (!userId) {
+      return res.status(404).json({
+        success: false,
+        message: "Unauthorized: User ID missing",
+      });
+    }
+
+    // 1. Get user cart
+    const cart = await UserCart.findOne({ user_id: userId }).select("items");
+
+    const itemCount = cart?.items?.length || 0;
+
+    return res.status(200).json({
+      success: true,
+      message: "User cart count fetched successfully",
+      data: {
+        count: itemCount,
+      },
+    });
+
+  } catch (error) {
+    console.log("Cart Item count error ===>");
+    console.log(error);
+
+    return res.status(500).json({
+      success: false,
+      message: "cart item count api failed",
+      error: error
+    });
+
+
+  }
+};
