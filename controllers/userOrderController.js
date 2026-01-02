@@ -47,7 +47,11 @@ export const getUserOrderDetails = async (req, res) => {
     const order = await AllOrdersData.findOne({
       _id: orderId,
       user_id: userId,
-    });
+    })
+    .populate({
+        path: "items.additional_items.item_id",
+        select: "itemName itemPrice", // only required fields
+      });
 
     if (!order) {
       return res.status(404).json({
