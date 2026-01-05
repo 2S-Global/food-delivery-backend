@@ -93,7 +93,17 @@ const userCartSchema = new mongoose.Schema(
                   "every_3_days",
                   "weekly",
                   "monthly",
+                  "once",
                 ],
+                required: true,
+              },
+              delivery_dates: {
+                type: [String],
+                required: true,
+              },
+              delivery_count: {
+                type: Number,
+                min: 1,
                 required: true,
               },
             },

@@ -1,7 +1,7 @@
 import additionalItemModel from "../models/additionalItemModel.js";
 import SubscriptionPrice from "../models/subscriptionPriceModel.js";
 import UserCart from "../models/userCartModel.js"
-import { calculateAddonDeliveries } from "./Helpers/calculateAddonDeliveries.js"
+import { calculateAddonDeliveryDates } from "./Helpers/calculateAddonDeliveries.js"
 
 import Razorpay from "razorpay";
 import crypto from "crypto";
@@ -336,7 +336,7 @@ export const userAddToCart = async (req, res) => {
         meal_count: totalMeals,
         // per_meal_price: perMealPrice.toFixed(2),
         total_price: totalPrice,
-      });    
+      });
     }
 
     /* ======================================================
@@ -364,6 +364,8 @@ export const userAddToCart = async (req, res) => {
             "Please add a subscription before adding additional items",
         });
       }
+
+      console.log("I am gettimg all subscription here : ", subscription);
 
       let totalAddonPrice = 0;
       const addonItems = [];
@@ -403,16 +405,30 @@ export const userAddToCart = async (req, res) => {
         console.log("Here is my addonStartDate: ", addonStartDate);
         console.log("Here is my addonEndDate: ", subscription.end_date);
 
-        const deliveryCount = calculateAddonDeliveries(
+        // const deliveryCount = calculateAddonDeliveries(
+        //   addonStartDate,
+        //   subscription.end_date,
+        //   addon_schedule_type
+        // );
+
+        const deliveryDates = calculateAddonDeliveryDates(
           addonStartDate,
           subscription.end_date,
           addon_schedule_type
         );
 
+        const deliveryCount = deliveryDates.length;
+
+        console.log("Here I am getting Delivery Dates: ", deliveryDates);
+
+        console.log("Here I am getting Delivery Counts: ", deliveryCount);
+
         const itemTotal =
           addon.itemPrice * quantity * deliveryCount;
 
         totalAddonPrice += itemTotal;
+
+        console.log("Here is my additional items end date which takes end date automatically: ", subscription.end_date);
 
         addonItems.push({
           item_id,
@@ -420,6 +436,12 @@ export const userAddToCart = async (req, res) => {
           addon_start_date: addonStartDate,
           addon_end_date: subscription.end_date,
           addon_schedule_type,
+
+          delivery_dates: deliveryDates,
+          // delivery_dates: deliveryDates.push(
+          //   current.toISOString().split("T")[0]
+          // ),
+          delivery_count: deliveryCount    // 👈 NEW
         });
       }
 
