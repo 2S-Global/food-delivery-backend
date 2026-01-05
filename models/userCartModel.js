@@ -42,20 +42,27 @@ const userCartSchema = new mongoose.Schema(
           },
         },
 
-        // weeks: {
-        //   type: Number,
-        //   min: 1,
-        //   required: function () {
-        //     return this.item_type === "subscription";
-        //   },
-        // },
+        weeks: {
+          type: Number,
+          min: 1,
+          required: function () {
+            return this.item_type === "subscription";
+          },
+        },
 
-        // meal_count: {
-        //   type: Number,
-        //   required: function () {
-        //     return this.item_type === "subscription";
-        //   },
-        // },
+        days: {
+          type: Number,
+          min: 0,
+          required: function () {
+            return this.item_type === "subscription";
+          },
+        },
+        meal_count: {
+          type: Number,
+          required: function () {
+            return this.item_type === "subscription";
+          },
+        },
 
         // ===== Additional items (MOVED, not deleted) =====
         additional_items: {

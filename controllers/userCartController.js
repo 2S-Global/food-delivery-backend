@@ -264,8 +264,6 @@ export const userAddToCart = async (req, res) => {
         });
       }
 
-      // Addition code starts from here
-
       // ======================================================
       // Step 1: Calculate meals based on days and Sundays
       // ======================================================
@@ -309,38 +307,36 @@ export const userAddToCart = async (req, res) => {
       const totalPrice = Number((totalMeals * perMealPrice).toFixed(2)); // round price
 
       // ======================================================
+      // Step X: Calculate weeks and remaining days
+      // ======================================================
 
+      // Normalize dates (remove time to avoid timezone bugs)
+      const start = new Date(startDate);
+      start.setHours(0, 0, 0, 0);
 
-      // Additional code ends here
+      const end = new Date(endDate);
+      end.setHours(0, 0, 0, 0);
 
-      /*
+      // Total days INCLUDING both start & end date
+      const totalDays =
+        Math.floor((end - start) / (1000 * 60 * 60 * 24)) + 1;
 
-      const diffDays = Math.ceil(
-        (endDate - startDate) / (1000 * 60 * 60 * 24)
-      );
-      const weeks = Math.ceil(diffDays / 7);
-      const mealCount = weeks * 13;
+      const weeks = Math.floor(totalDays / 7);
+      const days = totalDays % 7; // automatically 0 if no remainder
 
-      */
-
-      // const totalPrice = perWeekPrice * weeks;
-
-      // Remove existing subscription
-      // cart.items = cart.items.filter(
-      //   (i) => i.item_type !== "subscription"
-      // );
-
+      // Below this push menthod should be uncomment
       cart.items.push({
         item_type: "subscription",
         subscription_type,
         start_date: startDate,
         end_date: endDate,
-        total_meals: totalMeals,
-        // weeks,
-        // meal_count: mealCount,
+        // total_meals: totalMeals,
+        weeks,
+        days,
+        meal_count: totalMeals,
         // per_meal_price: perMealPrice.toFixed(2),
         total_price: totalPrice,
-      });
+      });    
     }
 
     /* ======================================================
@@ -501,6 +497,7 @@ export const getUserCart = async (req, res) => {
         start_date: item.start_date,
         end_date: item.end_date,
         weeks: item.weeks,
+        days: item.days,
         meal_count: item.meal_count,
         additional_items: item.additional_items,
         item_total_price: itemTotal.toFixed(2),
