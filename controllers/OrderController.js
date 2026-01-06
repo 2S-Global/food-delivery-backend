@@ -4,6 +4,7 @@ import User from "../models/userModel.js";
 import menuModel from "../models/menuModel.js";
 import additionalItemModel from "../models/additionalItemModel.js";
 import UserSubscription from "../models/userSubscriptionModel.js";
+import allOrdersData from "../models/allOrders.js";
 import mongoose from "mongoose";
 
 function generateOrderId() {
@@ -939,6 +940,118 @@ export const DeliveryPartnersGrowth = async (req, res) => {
       success: false,
       message: "Error fetching Delivery Partners by month",
       error: error.message,
+    });
+  }
+};
+
+export const getDailyOrderSummaryByDate = async (req, res) => {
+  try {
+    const { date } = req.query;
+
+    if (!date) {
+      return res.status(400).json({
+        success: false,
+        message: "Date is required",
+      });
+    }
+
+    /* =========================
+       NORMALIZE DATE
+    ========================= */
+    const selectedDate = new Date(date);
+    selectedDate.setUTCHours(0, 0, 0, 0);
+
+    const endOfDay = new Date(date);
+    endOfDay.setUTCHours(23, 59, 59, 999);
+
+    /* =========================
+       LOAD ADDITIONAL ITEM NAMES
+    ========================= */
+    const additionalItems = await additionalItemModel.find({}, { itemName: 1 });
+
+    console.log("Here I am getting additional items: ", additionalItems);
+
+    const additionalItemNameMap = {};
+    additionalItems.forEach(item => {
+      additionalItemNameMap[item._id.toString()] = item.itemName;
+    });
+
+    /* =========================
+       FIND ACTIVE PAID ORDERS
+    ========================= */
+    const orders = await allOrdersData.find({
+      payment_status: "paid",
+      items: {
+        $elemMatch: {
+          start_date: { $lte: endOfDay },
+          end_date: { $gte: selectedDate },
+        },
+      },
+    });
+
+    let vegCount = 0;
+    let nonVegCount = 0;
+    let additionalItemsTotal = 0;
+    let additionalItemsMap = {};
+
+    /* =========================
+       PROCESS ORDERS
+    ========================= */
+    orders.forEach(order => {
+      order.items.forEach(item => {
+
+        /* SUBSCRIPTIONS */
+        if (
+          item.item_type === "subscription" &&
+          selectedDate >= new Date(item.start_date) &&
+          selectedDate <= new Date(item.end_date)
+        ) {
+          if (item.subscription_type === "veg") vegCount++;
+          if (item.subscription_type === "non_veg") nonVegCount++;
+        }
+
+        /* ADDITIONAL ITEMS */
+        if (item.item_type === "additional_item") {
+          item.additional_items.forEach(addon => {
+            if (
+              selectedDate >= new Date(addon.addon_start_date) &&
+              selectedDate <= new Date(addon.addon_end_date)
+            ) {
+              const itemName =
+                additionalItemNameMap[addon.item_id.toString()] || "Unknown Item";
+
+              const quantity = addon.quantity || 1;
+
+              additionalItemsTotal += quantity;
+
+              if (!additionalItemsMap[itemName]) {
+                additionalItemsMap[itemName] = 0;
+              }
+
+              additionalItemsMap[itemName] += quantity;
+            }
+          });
+        }
+      });
+    });
+
+    /* =========================
+       RESPONSE
+    ========================= */
+    return res.status(200).json({
+      success: true,
+      date: selectedDate,
+      vegSubscriptions: vegCount,
+      nonVegSubscriptions: nonVegCount,
+      additionalItemsCount: additionalItemsTotal,
+      additionalItemsBreakdown: additionalItemsMap,
+    });
+
+  } catch (error) {
+    console.error("Daily order summary error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch daily order summary",
     });
   }
 };
