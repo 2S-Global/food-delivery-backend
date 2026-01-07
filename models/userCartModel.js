@@ -104,7 +104,7 @@ const userCartSchema = new mongoose.Schema(
               delivery_count: {
                 type: Number,
                 min: 1,
-               
+               default: 1
               },
             },
           ],
@@ -134,3 +134,4 @@ const UserCart = mongoose.model("UserCart", userCartSchema);
 
 
 export default UserCart;
+
