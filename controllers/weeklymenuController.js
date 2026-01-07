@@ -284,7 +284,7 @@ console.log('Weekly Menu ==> ',weeklyMenu)
 
 
 
-export const getMenuByDateAndUser = async (req, res) => {
+export const getMenuByDateAndUser_ORIGINAL_07_01_2025 = async (req, res) => {
   try {
     const userId = req.userId; // from JWT middleware
     const { date } = req.query;
@@ -400,6 +400,223 @@ export const getMenuByDateAndUser = async (req, res) => {
     }
 
     console.log("WEEKLY MENU ==> ", weeklyMenu);
+
+    /* =========================
+       4. POPULATE ADDITIONAL ITEMS
+    ========================= */
+    const populatedAddons = await Promise.all(
+      activeAdditionalItems.map(async (addon) => {
+        const item = await additionalItemModel.findById(addon.item_id); // change model if needed
+
+        return {
+          orderNumber: addon.orderNumber,
+          quantity: addon.quantity,
+          schedule: addon.schedule,
+          item,
+        };
+      })
+    );
+
+    /* =========================
+       5. FORMAT SUBSCRIPTION MENUS
+    ========================= */
+    const menus = activeSubscriptions.map((sub) => {
+      if (sub.subscription_type === "veg") {
+        return {
+          orderNumber: sub.orderNumber,
+          type: "veg",
+          lunch: weeklyMenu?.vegLunch || null,
+          dinner: weeklyMenu?.vegDinner || null,
+        };
+      }
+
+      return {
+        orderNumber: sub.orderNumber,
+        type: "non-veg",
+        lunch: weeklyMenu?.nonVegLunch || null,
+        dinner: weeklyMenu?.nonVegDinner || null,
+      };
+    });
+
+    /* =========================
+       FINAL RESPONSE
+    ========================= */
+    return res.status(200).json({
+      success: true,
+      hasOrder: true,
+      date: selectedDate,
+      menus,
+      additionalItems: populatedAddons, // ✅ INCLUDED
+    });
+  } catch (error) {
+    console.error("Get menu by date & user error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch menu",
+    });
+  }
+};
+
+
+export const getMenuByDateAndUser = async (req, res) => {
+  try {
+    const userId = req.userId; // from JWT middleware
+    const { date } = req.query;
+
+    console.log("User ID:", userId);
+    console.log("Date:", date);
+
+    if (!userId || !date) {
+      return res.status(400).json({
+        success: false,
+        message: "userId and date are required",
+      });
+    }
+
+    /* =========================
+       NORMALIZE DATE (UTC SAFE)
+    ========================= */
+    const selectedDate = new Date(date);
+    selectedDate.setUTCHours(0, 0, 0, 0);
+
+    const endOfDay = new Date(date);
+    endOfDay.setUTCHours(23, 59, 59, 999);
+
+    /* =========================
+       1. FIND ALL ACTIVE ORDERS
+    ========================= */
+/*     const orders = await allOrdersData.find({
+      user_id: userId,
+      payment_status: "paid",
+      items: {
+        $elemMatch: {
+          start_date: { $lte: endOfDay },
+          end_date: { $gte: selectedDate },
+        },
+      },
+    }); */
+
+    const orders = await allOrdersData.find({
+  user_id: userId,
+  payment_status: "paid",
+  items: {
+    $elemMatch: {
+      $or: [
+        {
+          item_type: "subscription",
+          start_date: { $lte: endOfDay },
+          end_date: { $gte: selectedDate },
+        },
+        {
+          item_type: "additional_item",
+        },
+      ],
+    },
+  },
+});
+
+
+    console.log("ALL ORDERS ==> ", orders);
+
+    if (!orders.length) {
+      return res.status(200).json({
+        success: true,
+        hasOrder: false,
+        message: "No active subscription for this date",
+        data: null,
+      });
+    }
+
+    /* =========================
+       2. EXTRACT ACTIVE ITEMS
+    ========================= */
+    let activeSubscriptions = [];
+    let activeAdditionalItems = [];
+
+    orders.forEach((order) => {
+      order.items.forEach((item) => {
+
+        /* -------- SUBSCRIPTIONS -------- */
+        if (
+          item.item_type === "subscription" &&
+          selectedDate >= new Date(item.start_date) &&
+          selectedDate <= new Date(item.end_date)
+        ) {
+          activeSubscriptions.push({
+            orderNumber: order.order_number,
+            subscription_type: item.subscription_type, // veg / non-veg
+          });
+        }
+
+        /* -------- ADDITIONAL ITEMS -------- */
+/*         if (item.item_type === "additional_item") {
+          item.additional_items.forEach((addon) => {
+            if (
+              selectedDate >= new Date(addon.addon_start_date) &&
+              selectedDate <= new Date(addon.addon_end_date)
+            ) {
+              activeAdditionalItems.push({
+                orderNumber: order.order_number,
+                item_id: addon.item_id,
+                quantity: addon.quantity,
+                schedule: addon.addon_schedule_type,
+              });
+            }
+          });
+        } */
+
+          /* -------- ADDITIONAL ITEMS -------- */
+if (item.item_type === "additional_item") {
+  item.additional_items.forEach((addon) => {
+    if (
+      Array.isArray(addon.delivery_dates) &&
+      addon.delivery_dates.some((d) => {
+        const deliveryDate = new Date(d);
+        deliveryDate.setUTCHours(0, 0, 0, 0);
+        return deliveryDate.getTime() === selectedDate.getTime();
+      })
+    ) {
+      activeAdditionalItems.push({
+        orderNumber: order.order_number,
+        item_id: addon.item_id,
+        quantity: addon.quantity,
+        schedule: addon.addon_schedule_type,
+      });
+    }
+  });
+}
+
+
+      });
+    });
+
+    console.log("ACTIVE SUBSCRIPTIONS ==> ", activeSubscriptions);
+    console.log("ACTIVE ADDONS ==> ", activeAdditionalItems);
+
+    if (!activeSubscriptions.length && !activeAdditionalItems.length) {
+      return res.status(200).json({
+        success: true,
+        hasOrder: false,
+        data: null,
+      });
+    }
+
+    /* =========================
+       3. FETCH WEEKLY MENU
+    ========================= */
+    const weeklyMenu = await WeeklyMenu.findOne({ date: selectedDate })
+      .populate("vegLunch vegDinner nonVegLunch nonVegDinner");
+
+    if (!weeklyMenu && activeSubscriptions.length) {
+      return res.status(200).json({
+        success: true,
+        hasOrder: true,
+        message: "Menu not published for this date",
+        data: null,
+      });
+    }
+
+   // console.log("WEEKLY MENU ==> ", weeklyMenu);
 
     /* =========================
        4. POPULATE ADDITIONAL ITEMS
