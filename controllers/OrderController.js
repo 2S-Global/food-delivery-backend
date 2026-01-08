@@ -5,6 +5,7 @@ import menuModel from "../models/menuModel.js";
 import additionalItemModel from "../models/additionalItemModel.js";
 import UserSubscription from "../models/userSubscriptionModel.js";
 import allOrdersData from "../models/allOrders.js";
+import WeeklyMenu from "../models/WeeklyMenu.js";
 import mongoose from "mongoose";
 
 function generateOrderId() {
@@ -944,7 +945,7 @@ export const DeliveryPartnersGrowth = async (req, res) => {
   }
 };
 
-export const getDailyOrderSummaryByDate = async (req, res) => {
+export const getDailyOrderSummaryByDate_OLD = async (req, res) => {
   try {
     const { date } = req.query;
 
@@ -1041,6 +1042,164 @@ export const getDailyOrderSummaryByDate = async (req, res) => {
     return res.status(200).json({
       success: true,
       date: selectedDate,
+      vegSubscriptions: vegCount,
+      nonVegSubscriptions: nonVegCount,
+      additionalItemsCount: additionalItemsTotal,
+      additionalItemsBreakdown: additionalItemsMap,
+    });
+
+  } catch (error) {
+    console.error("Daily order summary error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch daily order summary",
+    });
+  }
+};
+
+
+export const getDailyOrderSummaryByDate = async (req, res) => {
+  try {
+    const { date } = req.query;
+
+    if (!date) {
+      return res.status(400).json({
+        success: false,
+        message: "Date is required",
+      });
+    }
+
+    /* =========================
+       NORMALIZE DATE
+    ========================= */
+    const selectedDate = new Date(date);
+    selectedDate.setUTCHours(0, 0, 0, 0);
+
+    const endOfDay = new Date(date);
+    endOfDay.setUTCHours(23, 59, 59, 999);
+
+
+
+/* =========================
+3. FETCH WEEKLY MENU
+========================= */
+const weeklyMenu = await WeeklyMenu.findOne({ date: selectedDate })
+.populate("vegLunch vegDinner nonVegLunch nonVegDinner");
+
+if (!weeklyMenu) {
+return res.status(200).json({
+success: true,
+hasOrder: true,
+message: "Menu not published for this date",
+data: null,
+});
+}
+
+//console.log(weeklyMenu)
+
+
+/* =========================
+5. FORMAT SUBSCRIPTION MENUS
+========================= */
+const menus = {
+  veg: {
+    lunch: weeklyMenu.vegLunch || null,
+    dinner: weeklyMenu.vegDinner || null,
+  },
+  nonVeg: {
+    lunch: weeklyMenu.nonVegLunch || null,
+    dinner: weeklyMenu.nonVegDinner || null,
+  },
+};
+
+/* =========================
+   LOAD ADDITIONAL ITEM DETAILS
+========================= */
+const additionalItems = await additionalItemModel.find(
+  {},
+  { itemName: 1, image: 1 } // add image
+);
+
+const additionalItemMap = {};
+additionalItems.forEach(item => {
+  additionalItemMap[item._id.toString()] = {
+    name: item.itemName,
+    image: item.images?.[0] || null, // ✅ FIX HERE
+  };
+});
+
+    /* =========================
+       FIND ACTIVE PAID ORDERS
+    ========================= */
+    const orders = await allOrdersData.find({
+      payment_status: "paid",
+      items: {
+        $elemMatch: {
+          start_date: { $lte: endOfDay },
+          end_date: { $gte: selectedDate },
+        },
+      },
+    });
+
+    let vegCount = 0;
+    let nonVegCount = 0;
+    let additionalItemsTotal = 0;
+    let additionalItemsMap = {};
+
+    /* =========================
+       PROCESS ORDERS
+    ========================= */
+    orders.forEach(order => {
+  (order.items || []).forEach(item => {
+
+    /* SUBSCRIPTIONS */
+    if (
+      item.item_type === "subscription" &&
+      selectedDate >= new Date(item.start_date) &&
+      selectedDate <= new Date(item.end_date)
+    ) {
+      if (item.subscription_type === "veg") vegCount++;
+      if (item.subscription_type === "non_veg") nonVegCount++;
+    }
+
+    /* ADDITIONAL ITEMS */
+    if (item.item_type === "additional_item") {
+      (item.additional_items || []).forEach(addon => {
+
+        if (
+          selectedDate >= new Date(addon.addon_start_date) &&
+          selectedDate <= new Date(addon.addon_end_date)
+        ) {
+          const itemId = addon.item_id.toString();
+          const quantity = addon.quantity || 1;
+
+          additionalItemsTotal += quantity;
+
+          if (!additionalItemsMap[itemId]) {
+            const itemData = additionalItemMap[itemId] || {};
+
+            additionalItemsMap[itemId] = {
+              itemId,
+              name: itemData.name || "Unknown Item",
+              image: itemData.image || null, // now works
+              totalQuantity: 0,
+            };
+          }
+
+          additionalItemsMap[itemId].totalQuantity += quantity;
+        }
+      });
+    }
+  });
+});
+
+    /* =========================
+       RESPONSE
+    ========================= */
+    return res.status(200).json({
+      success: true,
+      date: selectedDate,
+      menus,
       vegSubscriptions: vegCount,
       nonVegSubscriptions: nonVegCount,
       additionalItemsCount: additionalItemsTotal,
