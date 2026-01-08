@@ -1080,53 +1080,53 @@ export const getDailyOrderSummaryByDate = async (req, res) => {
 
 
 
-/* =========================
-3. FETCH WEEKLY MENU
-========================= */
-const weeklyMenu = await WeeklyMenu.findOne({ date: selectedDate })
-.populate("vegLunch vegDinner nonVegLunch nonVegDinner");
+    /* =========================
+    3. FETCH WEEKLY MENU
+    ========================= */
+    const weeklyMenu = await WeeklyMenu.findOne({ date: selectedDate })
+      .populate("vegLunch vegDinner nonVegLunch nonVegDinner");
 
-if (!weeklyMenu) {
-return res.status(200).json({
-success: true,
-hasOrder: true,
-message: "Menu not published for this date",
-data: null,
-});
-}
+    if (!weeklyMenu) {
+      return res.status(200).json({
+        success: true,
+        hasOrder: true,
+        message: "Menu not published for this date",
+        data: null,
+      });
+    }
 
-//console.log(weeklyMenu)
+    //console.log(weeklyMenu)
 
 
-/* =========================
-5. FORMAT SUBSCRIPTION MENUS
-========================= */
-const menus = {
-  veg: {
-    lunch: weeklyMenu.vegLunch || null,
-    dinner: weeklyMenu.vegDinner || null,
-  },
-  nonVeg: {
-    lunch: weeklyMenu.nonVegLunch || null,
-    dinner: weeklyMenu.nonVegDinner || null,
-  },
-};
+    /* =========================
+    5. FORMAT SUBSCRIPTION MENUS
+    ========================= */
+    const menus = {
+      veg: {
+        lunch: weeklyMenu.vegLunch || null,
+        dinner: weeklyMenu.vegDinner || null,
+      },
+      nonVeg: {
+        lunch: weeklyMenu.nonVegLunch || null,
+        dinner: weeklyMenu.nonVegDinner || null,
+      },
+    };
 
-/* =========================
-   LOAD ADDITIONAL ITEM DETAILS
-========================= */
-const additionalItems = await additionalItemModel.find(
-  {},
-  { itemName: 1, images: 1 } // add image
-);
+    /* =========================
+       LOAD ADDITIONAL ITEM DETAILS
+    ========================= */
+    const additionalItems = await additionalItemModel.find(
+      {},
+      { itemName: 1, images: 1 } // add image
+    );
 
-const additionalItemMap = {};
-additionalItems.forEach(item => {
-  additionalItemMap[item._id.toString()] = {
-    name: item.itemName,
-    image: item.images?.[0] || null, // ✅ FIX HERE
-  };
-});
+    const additionalItemMap = {};
+    additionalItems.forEach(item => {
+      additionalItemMap[item._id.toString()] = {
+        name: item.itemName,
+        image: item.images?.[0] || null, // ✅ FIX HERE
+      };
+    });
 
     /* =========================
        FIND ACTIVE PAID ORDERS
@@ -1150,48 +1150,48 @@ additionalItems.forEach(item => {
        PROCESS ORDERS
     ========================= */
     orders.forEach(order => {
-  (order.items || []).forEach(item => {
+      (order.items || []).forEach(item => {
 
-    /* SUBSCRIPTIONS */
-    if (
-      item.item_type === "subscription" &&
-      selectedDate >= new Date(item.start_date) &&
-      selectedDate <= new Date(item.end_date)
-    ) {
-      if (item.subscription_type === "veg") vegCount++;
-      if (item.subscription_type === "non_veg") nonVegCount++;
-    }
-
-    /* ADDITIONAL ITEMS */
-    if (item.item_type === "additional_item") {
-      (item.additional_items || []).forEach(addon => {
-
+        /* SUBSCRIPTIONS */
         if (
-          selectedDate >= new Date(addon.addon_start_date) &&
-          selectedDate <= new Date(addon.addon_end_date)
+          item.item_type === "subscription" &&
+          selectedDate >= new Date(item.start_date) &&
+          selectedDate <= new Date(item.end_date)
         ) {
-          const itemId = addon.item_id.toString();
-          const quantity = addon.quantity || 1;
+          if (item.subscription_type === "veg") vegCount++;
+          if (item.subscription_type === "non_veg") nonVegCount++;
+        }
 
-          additionalItemsTotal += quantity;
+        /* ADDITIONAL ITEMS */
+        if (item.item_type === "additional_item") {
+          (item.additional_items || []).forEach(addon => {
 
-          if (!additionalItemsMap[itemId]) {
-            const itemData = additionalItemMap[itemId] || {};
+            if (
+              selectedDate >= new Date(addon.addon_start_date) &&
+              selectedDate <= new Date(addon.addon_end_date)
+            ) {
+              const itemId = addon.item_id.toString();
+              const quantity = addon.quantity || 1;
 
-            additionalItemsMap[itemId] = {
-              itemId,
-              name: itemData.name || "Unknown Item",
-              image: itemData.image || null, // now works
-              totalQuantity: 0,
-            };
-          }
+              additionalItemsTotal += quantity;
 
-          additionalItemsMap[itemId].totalQuantity += quantity;
+              if (!additionalItemsMap[itemId]) {
+                const itemData = additionalItemMap[itemId] || {};
+
+                additionalItemsMap[itemId] = {
+                  itemId,
+                  name: itemData.name || "Unknown Item",
+                  image: itemData.image || null, // now works
+                  totalQuantity: 0,
+                };
+              }
+
+              additionalItemsMap[itemId].totalQuantity += quantity;
+            }
+          });
         }
       });
-    }
-  });
-});
+    });
 
     /* =========================
        RESPONSE
@@ -1208,6 +1208,308 @@ additionalItems.forEach(item => {
 
   } catch (error) {
     console.error("Daily order summary error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch daily order summary",
+    });
+  }
+};
+
+export const getDailyOrderSummaryGroupedByZipCode123 = async (req, res) => {
+  try {
+    console.log("Zip Code API is running successfully! ");
+    const { date } = req.query;
+
+    if (!date) {
+      return res.status(400).json({
+        success: false,
+        message: "Date is required",
+      });
+    }
+
+    /* =========================
+       NORMALIZE DATE
+    ========================= */
+    const selectedDate = new Date(date);
+    selectedDate.setUTCHours(0, 0, 0, 0);
+
+    const endOfDay = new Date(date);
+    endOfDay.setUTCHours(23, 59, 59, 999);
+
+    /* =========================
+       LOAD ADDITIONAL ITEM NAMES
+    ========================= */
+    const additionalItems = await additionalItemModel.find({}, { itemName: 1 });
+
+    const additionalItemNameMap = {};
+    additionalItems.forEach(item => {
+      additionalItemNameMap[item._id.toString()] = item.itemName;
+    });
+
+    /* =========================
+       FETCH ALL PAID ORDERS
+    ========================= */
+    const orders = await allOrdersData.find({
+      payment_status: "paid",
+      items: {
+        $elemMatch: {
+          start_date: { $lte: endOfDay },
+          end_date: { $gte: selectedDate },
+        },
+      },
+    });
+
+    /**
+     * zipCodeSummary = {
+     *   "560001": {
+     *      veg: 0,
+     *      nonVeg: 0,
+     *      additionalItemsTotal: 0,
+     *      additionalItemsBreakdown: {}
+     *   }
+     * }
+     */
+    const zipCodeSummary = {};
+
+    /* =========================
+       PROCESS ORDERS
+    ========================= */
+    orders.forEach(order => {
+      const zipCode = order.shipping_address?.zipCode || "UNKNOWN";
+
+      if (!zipCodeSummary[zipCode]) {
+        zipCodeSummary[zipCode] = {
+          vegSubscriptions: 0,
+          nonVegSubscriptions: 0,
+          additionalItemsCount: 0,
+          additionalItemsBreakdown: {},
+        };
+      }
+
+      order.items.forEach(item => {
+
+        /* SUBSCRIPTIONS */
+        if (
+          item.item_type === "subscription" &&
+          selectedDate >= new Date(item.start_date) &&
+          selectedDate <= new Date(item.end_date)
+        ) {
+          if (item.subscription_type === "veg") {
+            zipCodeSummary[zipCode].vegSubscriptions++;
+          }
+
+          if (item.subscription_type === "non_veg") {
+            zipCodeSummary[zipCode].nonVegSubscriptions++;
+          }
+        }
+
+        /* ADDITIONAL ITEMS */
+        if (item.item_type === "additional_item") {
+          item.additional_items.forEach(addon => {
+            if (
+              selectedDate >= new Date(addon.addon_start_date) &&
+              selectedDate <= new Date(addon.addon_end_date)
+            ) {
+              const itemName =
+                additionalItemNameMap[addon.item_id.toString()] || "Unknown Item";
+
+              const quantity = addon.quantity || 1;
+
+              zipCodeSummary[zipCode].additionalItemsCount += quantity;
+
+              if (!zipCodeSummary[zipCode].additionalItemsBreakdown[itemName]) {
+                zipCodeSummary[zipCode].additionalItemsBreakdown[itemName] = 0;
+              }
+
+              zipCodeSummary[zipCode].additionalItemsBreakdown[itemName] += quantity;
+            }
+          });
+        }
+      });
+    });
+
+    /* =========================
+       FETCH WEEKLY MENU
+    ========================= */
+    const menuDate = new Date(date);
+    menuDate.setHours(0, 0, 0, 0);
+
+    const weeklyMenu = await WeeklyMenu.findOne({ date: menuDate })
+      .populate("vegLunch vegDinner nonVegLunch nonVegDinner");
+
+    console.log("Here is my weekly menu in zipcode: ", weeklyMenu);
+
+    /* =========================
+       RESPONSE
+    ========================= */
+    return res.status(200).json({
+      success: true,
+      date: selectedDate,
+      summaryByZipCode: zipCodeSummary,
+      weeklyMenu: weeklyMenu || null,
+    });
+
+  } catch (error) {
+    console.error("Daily order summary grouped by zipCode error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch daily order summary",
+    });
+  }
+};
+
+export const getDailyOrderSummaryGroupedByZipCode = async (req, res) => {
+  try {
+    // console.log("Zip Code API is running successfully!");
+
+    const { date } = req.query;
+
+    // console.log("Here I am getting date: ", date);
+
+    if (!date) {
+      return res.status(400).json({
+        success: false,
+        message: "Date is required",
+      });
+    }
+
+    /* =========================
+       NORMALIZE DATE (UTC SAFE)
+    ========================= */
+    const selectedDate = new Date(date);
+    selectedDate.setUTCHours(0, 0, 0, 0);
+
+    const endOfDay = new Date(date);
+    endOfDay.setUTCHours(23, 59, 59, 999);
+
+    /* =========================
+       LOAD ADDITIONAL ITEM NAMES
+    ========================= */
+    const additionalItems = await additionalItemModel.find({}, { itemName: 1 });
+
+    const additionalItemNameMap = {};
+    additionalItems.forEach(item => {
+      additionalItemNameMap[item._id.toString()] = item.itemName;
+    });
+
+    /* =========================
+       FETCH ALL PAID ORDERS
+    ========================= */
+    const orders = await allOrdersData.find({
+      payment_status: "paid",
+      items: {
+        $elemMatch: {
+          start_date: { $lte: endOfDay },
+          end_date: { $gte: selectedDate },
+        },
+      },
+    });
+
+    console.log("Here I am getting my all order data: ", orders);
+
+    /* =========================
+       GROUP BY ZIP CODE
+    ========================= */
+    const zipCodeSummary = {};
+
+    orders.forEach(order => {
+      const zipCode = order.shipping_address?.zipCode || "UNKNOWN";
+
+      if (!zipCodeSummary[zipCode]) {
+        zipCodeSummary[zipCode] = {
+          vegSubscriptions: 0,
+          nonVegSubscriptions: 0,
+          additionalItemsCount: 0,
+          additionalItemsBreakdown: {},
+        };
+      }
+
+      order.items.forEach(item => {
+
+        /* -------- SUBSCRIPTIONS -------- */
+        if (
+          item.item_type === "subscription" &&
+          selectedDate >= new Date(item.start_date) &&
+          selectedDate <= new Date(item.end_date)
+        ) {
+          if (item.subscription_type === "veg") {
+            zipCodeSummary[zipCode].vegSubscriptions++;
+          }
+
+          if (item.subscription_type === "non_veg") {
+            zipCodeSummary[zipCode].nonVegSubscriptions++;
+          }
+        }
+
+        /* -------- ADDITIONAL ITEMS -------- */
+        if (item.item_type === "additional_item") {
+          item.additional_items.forEach(addon => {
+            if (
+              Array.isArray(addon.delivery_dates) &&
+              addon.delivery_dates.some(d => {
+                const deliveryDate = new Date(d);
+                deliveryDate.setUTCHours(0, 0, 0, 0);
+                return deliveryDate.getTime() === selectedDate.getTime();
+              })
+            ) {
+              const itemName =
+                additionalItemNameMap[addon.item_id.toString()] || "Unknown Item";
+
+              const quantity = addon.quantity || 1;
+
+              zipCodeSummary[zipCode].additionalItemsCount += quantity;
+
+              if (!zipCodeSummary[zipCode].additionalItemsBreakdown[itemName]) {
+                zipCodeSummary[zipCode].additionalItemsBreakdown[itemName] = 0;
+              }
+
+              zipCodeSummary[zipCode].additionalItemsBreakdown[itemName] += quantity;
+            }
+          });
+        }
+      });
+    });
+
+    /* =========================
+       FETCH WEEKLY MENU (IDENTICAL LOGIC)
+    ========================= */
+    const weeklyMenu = await WeeklyMenu.findOne({ date: selectedDate })
+      .populate("vegLunch vegDinner nonVegLunch nonVegDinner");
+
+    if (!weeklyMenu) {
+      return res.status(200).json({
+        success: true,
+        hasOrder: true,
+        message: "Menu not published for this date",
+        data: null,
+      });
+    }
+
+    const menus = {
+      veg: {
+        lunch: weeklyMenu.vegLunch || null,
+        dinner: weeklyMenu.vegDinner || null,
+      },
+      nonVeg: {
+        lunch: weeklyMenu.nonVegLunch || null,
+        dinner: weeklyMenu.nonVegDinner || null,
+      },
+    };
+
+
+    /* =========================
+       FINAL RESPONSE
+    ========================= */
+    return res.status(200).json({
+      success: true,
+      date: selectedDate,
+      menus,
+      summaryByZipCode: zipCodeSummary,
+      // weeklyMenu: weeklyMenu || null,
+    });
+
+  } catch (error) {
+    console.error("Daily order summary grouped by zipCode error:", error);
     return res.status(500).json({
       success: false,
       message: "Failed to fetch daily order summary",

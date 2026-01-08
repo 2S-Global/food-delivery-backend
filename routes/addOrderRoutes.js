@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 import { v2 as cloudinary } from 'cloudinary';
 import userAuth from "../middleware/authMiddleware.js";
 import adminMiddleware from "../middleware/adminMiddleware.js";
-import { addOrder, listAllOrder, deleteOrder, listOrderItems, getOrderSummary, OrdersChartByStatus, RevenueByStatus, RevenueByDate, OrdersByDate, CustomersGrowth, DeliveryPartnersGrowth, getDailyOrderSummaryByDate } from "../controllers/OrderController.js";
+import { addOrder, listAllOrder, deleteOrder, listOrderItems, getOrderSummary, OrdersChartByStatus, RevenueByStatus, RevenueByDate, OrdersByDate, CustomersGrowth, DeliveryPartnersGrowth, getDailyOrderSummaryByDate, getDailyOrderSummaryGroupedByZipCode } from "../controllers/OrderController.js";
 
 // Initialize dotenv to load environment variables
 dotenv.config();
@@ -47,5 +47,7 @@ addOrderRouter.get("/customers-by-month", userAuth, adminMiddleware, CustomersGr
 addOrderRouter.get("/delivery-partners-by-month", userAuth, adminMiddleware, DeliveryPartnersGrowth);
 // Get Daily Order Summary By Date
 addOrderRouter.get("/daily-order-summary", userAuth, adminMiddleware, getDailyOrderSummaryByDate);
+// Get Daily Order Summary By Date
+addOrderRouter.get("/daily-order-summary-zipcode", userAuth, adminMiddleware, getDailyOrderSummaryGroupedByZipCode);
 
 export default addOrderRouter;
