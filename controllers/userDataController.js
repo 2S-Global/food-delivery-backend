@@ -869,6 +869,7 @@ export const updateUserDetails = async (req, res) => {
     if (address) updateData.address = address;
 
     // Upload only if file exists
+    /*
     if (req.file) {
       const result = await new Promise((resolve, reject) => {
         cloudinary.uploader
@@ -884,6 +885,7 @@ export const updateUserDetails = async (req, res) => {
 
       updateData.profilePicture = result.secure_url;
     }
+    */
 
     const updatedUser = await User.findByIdAndUpdate(
       userId,
@@ -911,6 +913,60 @@ export const updateUserDetails = async (req, res) => {
     });
   }
 };
+
+// Upload User Profile Picture API
+export const uploadProfileImage = async (req, res) => {
+  try {
+    const userId = req.userId;
+
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "No image file provided",
+      });
+    }
+
+    const uploadResult = await new Promise((resolve, reject) => {
+      cloudinary.uploader
+        .upload_stream(
+          { folder: "profile_images" },
+          (error, result) => {
+            if (error) reject(error);
+            else resolve(result);
+          }
+        )
+        .end(req.file.buffer);
+    });
+
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { profilePicture: uploadResult.secure_url },
+      { new: true }
+    ).select("-password -__v");
+
+    if (!updatedUser) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Profile image uploaded successfully",
+      data: {
+        profilePicture: updatedUser.profilePicture,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to upload profile image",
+      error: error.message,
+    });
+  }
+};
+
 
 // Reset Password API
 

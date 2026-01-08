@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 import { v2 as cloudinary } from 'cloudinary';
 import userAuth from "../middleware/authMiddleware.js";
 import adminMiddleware from "../middleware/adminMiddleware.js";
-import { toggleStatus, deleteCustomer, listDeliveryBoys, addMenu, listAllMenu, editMenu, deleteMenu, addAdditionalItem, listAdditionalItems, editAdditionalItem, deleteAdditionalItem, getUserDetails, updateUserDetails, forgotPassword, addContactDetails, getContactDetails, updateContactDetails, changePassword } from "../controllers/userDataController.js";
+import { toggleStatus, deleteCustomer, listDeliveryBoys, addMenu, listAllMenu, editMenu, deleteMenu, addAdditionalItem, listAdditionalItems, editAdditionalItem, deleteAdditionalItem, getUserDetails, updateUserDetails, forgotPassword, addContactDetails, getContactDetails, updateContactDetails, changePassword, uploadProfileImage } from "../controllers/userDataController.js";
 
 // Initialize dotenv to load environment variables
 dotenv.config();
@@ -54,6 +54,9 @@ userDataRouter.get("/user-details", userAuth, getUserDetails);
 
 // Update User Details
 userDataRouter.post("/update-user-details", upload.single("profileImage"), userAuth, updateUserDetails);
+
+// Update User Profile Picture
+userDataRouter.post("/upload-user-profile", upload.single("profileImage"), userAuth, uploadProfileImage);
 
 // Forgot Password API
 userDataRouter.post("/forgot-password", upload.none(), forgotPassword);
