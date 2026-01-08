@@ -1385,11 +1385,18 @@ export const getDailyOrderSummaryGroupedByZipCode = async (req, res) => {
     /* =========================
        LOAD ADDITIONAL ITEM NAMES
     ========================= */
-    const additionalItems = await additionalItemModel.find({}, { itemName: 1 });
+    const additionalItems = await additionalItemModel.find(
+      {},
+      { itemName: 1, images: 1 }
+    );
 
-    const additionalItemNameMap = {};
+    const additionalItemMap = {};
+
     additionalItems.forEach(item => {
-      additionalItemNameMap[item._id.toString()] = item.itemName;
+      additionalItemMap[item._id.toString()] = {
+        name: item.itemName,
+        image: item.images?.[0] || null, // ✅ FIX HERE
+      };
     });
 
     /* =========================
@@ -1452,6 +1459,7 @@ export const getDailyOrderSummaryGroupedByZipCode = async (req, res) => {
                 return deliveryDate.getTime() === selectedDate.getTime();
               })
             ) {
+              /*
               const itemName =
                 additionalItemNameMap[addon.item_id.toString()] || "Unknown Item";
 
@@ -1464,6 +1472,31 @@ export const getDailyOrderSummaryGroupedByZipCode = async (req, res) => {
               }
 
               zipCodeSummary[zipCode].additionalItemsBreakdown[itemName] += quantity;
+              */
+
+              // Here is my new code started
+              const itemId = addon.item_id.toString();
+
+              const itemInfo = additionalItemMap[itemId] || {
+                name: "Unknown Item",
+                image: null,
+              };
+
+              const quantity = addon.quantity || 1;
+
+              zipCodeSummary[zipCode].additionalItemsCount += quantity;
+
+              if (!zipCodeSummary[zipCode].additionalItemsBreakdown[itemId]) {
+                zipCodeSummary[zipCode].additionalItemsBreakdown[itemId] = {
+                  itemId,
+                  name: itemInfo.name,
+                  image: itemInfo.image,
+                  totalQuantity: 0,
+                };
+              }
+
+              zipCodeSummary[zipCode].additionalItemsBreakdown[itemId].totalQuantity += quantity;
+              // Here is my new code ended
             }
           });
         }
