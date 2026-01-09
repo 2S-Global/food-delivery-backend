@@ -1215,156 +1215,9 @@ export const getDailyOrderSummaryByDate = async (req, res) => {
   }
 };
 
-export const getDailyOrderSummaryGroupedByZipCode123 = async (req, res) => {
-  try {
-    console.log("Zip Code API is running successfully! ");
-    const { date } = req.query;
-
-    if (!date) {
-      return res.status(400).json({
-        success: false,
-        message: "Date is required",
-      });
-    }
-
-    /* =========================
-       NORMALIZE DATE
-    ========================= */
-    const selectedDate = new Date(date);
-    selectedDate.setUTCHours(0, 0, 0, 0);
-
-    const endOfDay = new Date(date);
-    endOfDay.setUTCHours(23, 59, 59, 999);
-
-    /* =========================
-       LOAD ADDITIONAL ITEM NAMES
-    ========================= */
-    const additionalItems = await additionalItemModel.find({}, { itemName: 1 });
-
-    const additionalItemNameMap = {};
-    additionalItems.forEach(item => {
-      additionalItemNameMap[item._id.toString()] = item.itemName;
-    });
-
-    /* =========================
-       FETCH ALL PAID ORDERS
-    ========================= */
-    const orders = await allOrdersData.find({
-      payment_status: "paid",
-      items: {
-        $elemMatch: {
-          start_date: { $lte: endOfDay },
-          end_date: { $gte: selectedDate },
-        },
-      },
-    });
-
-    /**
-     * zipCodeSummary = {
-     *   "560001": {
-     *      veg: 0,
-     *      nonVeg: 0,
-     *      additionalItemsTotal: 0,
-     *      additionalItemsBreakdown: {}
-     *   }
-     * }
-     */
-    const zipCodeSummary = {};
-
-    /* =========================
-       PROCESS ORDERS
-    ========================= */
-    orders.forEach(order => {
-      const zipCode = order.shipping_address?.zipCode || "UNKNOWN";
-
-      if (!zipCodeSummary[zipCode]) {
-        zipCodeSummary[zipCode] = {
-          vegSubscriptions: 0,
-          nonVegSubscriptions: 0,
-          additionalItemsCount: 0,
-          additionalItemsBreakdown: {},
-        };
-      }
-
-      order.items.forEach(item => {
-
-        /* SUBSCRIPTIONS */
-        if (
-          item.item_type === "subscription" &&
-          selectedDate >= new Date(item.start_date) &&
-          selectedDate <= new Date(item.end_date)
-        ) {
-          if (item.subscription_type === "veg") {
-            zipCodeSummary[zipCode].vegSubscriptions++;
-          }
-
-          if (item.subscription_type === "non_veg") {
-            zipCodeSummary[zipCode].nonVegSubscriptions++;
-          }
-        }
-
-        /* ADDITIONAL ITEMS */
-        if (item.item_type === "additional_item") {
-          item.additional_items.forEach(addon => {
-            if (
-              selectedDate >= new Date(addon.addon_start_date) &&
-              selectedDate <= new Date(addon.addon_end_date)
-            ) {
-              const itemName =
-                additionalItemNameMap[addon.item_id.toString()] || "Unknown Item";
-
-              const quantity = addon.quantity || 1;
-
-              zipCodeSummary[zipCode].additionalItemsCount += quantity;
-
-              if (!zipCodeSummary[zipCode].additionalItemsBreakdown[itemName]) {
-                zipCodeSummary[zipCode].additionalItemsBreakdown[itemName] = 0;
-              }
-
-              zipCodeSummary[zipCode].additionalItemsBreakdown[itemName] += quantity;
-            }
-          });
-        }
-      });
-    });
-
-    /* =========================
-       FETCH WEEKLY MENU
-    ========================= */
-    const menuDate = new Date(date);
-    menuDate.setHours(0, 0, 0, 0);
-
-    const weeklyMenu = await WeeklyMenu.findOne({ date: menuDate })
-      .populate("vegLunch vegDinner nonVegLunch nonVegDinner");
-
-    console.log("Here is my weekly menu in zipcode: ", weeklyMenu);
-
-    /* =========================
-       RESPONSE
-    ========================= */
-    return res.status(200).json({
-      success: true,
-      date: selectedDate,
-      summaryByZipCode: zipCodeSummary,
-      weeklyMenu: weeklyMenu || null,
-    });
-
-  } catch (error) {
-    console.error("Daily order summary grouped by zipCode error:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Failed to fetch daily order summary",
-    });
-  }
-};
-
 export const getDailyOrderSummaryGroupedByZipCode = async (req, res) => {
   try {
-    // console.log("Zip Code API is running successfully!");
-
     const { date } = req.query;
-
-    // console.log("Here I am getting date: ", date);
 
     if (!date) {
       return res.status(400).json({
@@ -1373,18 +1226,15 @@ export const getDailyOrderSummaryGroupedByZipCode = async (req, res) => {
       });
     }
 
-    /* =========================
-       NORMALIZE DATE (UTC SAFE)
-    ========================= */
+    
+    //  NORMALIZE DATE (UTC SAFE)
     const selectedDate = new Date(date);
     selectedDate.setUTCHours(0, 0, 0, 0);
 
     const endOfDay = new Date(date);
     endOfDay.setUTCHours(23, 59, 59, 999);
 
-    /* =========================
-       LOAD ADDITIONAL ITEM NAMES
-    ========================= */
+    // LOAD ADDITIONAL ITEM NAMES
     const additionalItems = await additionalItemModel.find(
       {},
       { itemName: 1, images: 1 }
@@ -1395,13 +1245,11 @@ export const getDailyOrderSummaryGroupedByZipCode = async (req, res) => {
     additionalItems.forEach(item => {
       additionalItemMap[item._id.toString()] = {
         name: item.itemName,
-        image: item.images?.[0] || null, // ✅ FIX HERE
+        image: item.images?.[0] || null,
       };
     });
 
-    /* =========================
-       FETCH ALL PAID ORDERS
-    ========================= */
+    //  FETCH ALL PAID ORDERS
     const orders = await allOrdersData.find({
       payment_status: "paid",
       items: {
@@ -1412,11 +1260,7 @@ export const getDailyOrderSummaryGroupedByZipCode = async (req, res) => {
       },
     });
 
-    console.log("Here I am getting my all order data: ", orders);
-
-    /* =========================
-       GROUP BY ZIP CODE
-    ========================= */
+    //  GROUP BY ZIP CODE
     const zipCodeSummary = {};
 
     orders.forEach(order => {
