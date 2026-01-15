@@ -22,12 +22,14 @@ app.use(
   })
 );
 
-app.use((req, res, next) => {
-  if (req.method === "OPTIONS") {
-    return res.sendStatus(200);
-  }
-  next();
-});
+// app.use((req, res, next) => {
+//   if (req.method === "OPTIONS") {
+//     return res.sendStatus(200);
+//   }
+//   next();
+// });
+app.options("*", cors());
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -68,5 +70,6 @@ const PORT = process.env.PORT || 8080;
 //   console.log(`Server running on port ${PORT}`);
 
 // });
+
 
 export default app;
