@@ -599,7 +599,8 @@ export const validtoken = async (req, res) => {
 
 // Verify-email
 export const verifyEmail = async (req, res) => {
-  const { token } = req.query;
+const rawToken = req.query.token;
+const token = decodeURIComponent(rawToken);
   console.log("This is Token", token);
 
   const generateHTML = (title, heading, message, color) => `
@@ -723,3 +724,4 @@ export const verifyEmail = async (req, res) => {
       );
   }
 };
+
