@@ -1,11 +1,149 @@
-// import crypto from "crypto";
-// import UserCart from "../models/UserCart.js";
-// import Order from "../models/Order.js";
-// import Transaction from "../models/Transaction.js";
-
 import UserCart from "../models/userCartModel.js";
 import AllOrdersData from "../models/allOrders.js";
 import Transaction from "../models/transactionModel.js";
+import nodemailer from "nodemailer";
+import Menus from "../models/menuModel.js";
+import AdditionalItems from "../models/additionalItemModel.js";
+
+export const sendOrderConfirmationMail = async ({ to, order }) => {
+
+  const transporterEmailVerification = nodemailer.createTransport({
+    host: process.env.EMAIL_HOST,
+    port: process.env.EMAIL_PORT,
+    secure: true,
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+  });
+
+  const itemsHtml = (
+    await Promise.all(
+      order.items.map(async (item) => {
+
+        /* ===================== SUBSCRIPTION ===================== */
+        if (item.item_type === "subscription") {
+
+          const menu = await Menus.findOne({
+            menuType: item.subscription_type === "veg" ? "Veg" : "Non-Veg"
+          }).select("name images");
+
+          const image = menu?.images?.[0] || "";
+          const name =
+            menu?.name || `${item.subscription_type.toUpperCase()} Subscription`;
+
+          return `
+          <tr>
+            <td align="center" valign="middle">
+              <img src="${image}" width="70" height="70" style="object-fit:cover;" />
+            </td>
+            <td align="center" valign="middle">
+              <strong>${name}</strong>
+            </td>
+            <td align="center" valign="middle">
+              ${item.meal_count} Meals
+            </td>
+            <td align="center" valign="middle">
+              ${item.weeks} Week(s)<br/>
+              ${new Date(item.start_date).toDateString()} –
+              ${new Date(item.end_date).toDateString()}
+            </td>
+            <td align="center" valign="middle">
+              £${item.total_price}
+            </td>
+          </tr>
+        `;
+        }
+
+        /* ===================== ADDITIONAL ITEMS ===================== */
+        if (item.item_type === "additional_item") {
+
+          const addonRows = await Promise.all(
+            item.additional_items.map(async (addon) => {
+
+              const addonData = await AdditionalItems
+                .findById(addon.item_id)
+                .select("itemName images");
+
+              const image = addonData?.images?.[0] || "";
+              const name = addonData?.itemName || "Additional Item";
+
+              return `
+              <tr>
+                <td align="center" valign="middle">
+                  <img src="${image}" width="70" height="70" style="object-fit:cover;" />
+                </td>
+                <td align="center" valign="middle">
+                  <strong>${name}</strong>
+                </td>
+                <td align="center" valign="middle">
+                  ${addon.quantity}
+                </td>
+                <td align="center" valign="middle">
+                  ${addon.delivery_count} Deliveries<br/>
+                  ${new Date(addon.addon_start_date).toDateString()} –
+                  ${new Date(addon.addon_end_date).toDateString()}
+                </td>
+                <td align="center" valign="middle">
+                  £${item.total_price}
+                </td>
+              </tr>
+            `;
+            })
+          );
+
+          return addonRows.join("");
+        }
+
+        return "";
+      })
+    )
+  ).join("");
+
+
+
+
+  const mailOptions = {
+    from: `"Food App" <${process.env.EMAIL_USER}>`,
+    to,
+    subject: `Order Confirmation - ${order.order_number}`,
+    html: `
+      <h2>Thank you for your order!</h2>
+      <p>Your payment was successful. Below are your order details:</p>
+
+      <p><strong>Order Number:</strong> ${order.order_number}</p>
+      <p><strong>Payment Method:</strong> ${order.payment_method}</p>
+      <p><strong>Total Amount:</strong> £${order.total_price}</p>
+
+      <h3>Ordered Items</h3>
+      <table border="1" cellpadding="8" cellspacing="0" width="100%">
+        <tr>
+          <th align="center" valign="middle">Image</th>
+          <th align="center" valign="middle">Item Name</th>
+          <th align="center" valign="middle">Qty</th>
+          <th align="center" valign="middle">Duration / Schedule</th>
+          <th align="center" valign="middle">Price</th>
+        </tr>
+        ${itemsHtml}
+      </table>
+
+
+      <h3>Shipping Address</h3>
+      <p>
+        ${order.shipping_address.firstName} ${order.shipping_address.lastName}<br/>
+        ${order.shipping_address.address}<br/>
+        ${order.shipping_address.city}, ${order.shipping_address.state} - ${order.shipping_address.zipCode}<br/>
+        Phone: ${order.shipping_address.phone}
+      </p>
+
+      <p>We will notify you once your order is shipped.</p>
+      <p>Thank you for choosing us.</p>
+    `
+  };
+
+  await transporterEmailVerification.sendMail(mailOptions);
+};
+
 
 export const paynow = async (req, res) => {
   try {
@@ -132,6 +270,11 @@ export const paynow = async (req, res) => {
 
     // CLEAR USER CART
     await UserCart.deleteOne({ user_id: userId });
+
+    await sendOrderConfirmationMail({
+      to: email,
+      order: savedOrder
+    });
 
     return res.status(200).json({
       success: true,
