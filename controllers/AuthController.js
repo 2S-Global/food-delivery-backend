@@ -149,6 +149,8 @@ export const registerCustomer = async (req, res) => {
       },
     });
 
+    const encodedToken = encodeURIComponent(token);
+
     const mailOptionsEmailVerification = {
       from: `"Food Go Team" <${process.env.EMAIL_USER}>`,
       to: email,
@@ -174,7 +176,7 @@ export const registerCustomer = async (req, res) => {
           <li><strong>Password:</strong> ${password}</li>
         </ul>
 
-       <p>Click the link  to verify your email: <a href="${process.env.CLIENT_BASE_URL}/api/auth/verify-email?token=${token}">Verify Email</a></p>
+       <p>Click the link  to verify your email: <a href="${process.env.CLIENT_BASE_URL}/api/auth/verify-email?token=${encodedToken}">Verify Email</a></p>
       
         <p><strong>Key Features and Benefits of Food Go:</strong></p>
         <ul>
